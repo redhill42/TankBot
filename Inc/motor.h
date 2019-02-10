@@ -7,8 +7,8 @@ extern "C" {
 
 #include <stm32f1xx_hal.h>
 
-extern TIM_HandleTypeDef htim2;
-#define MOTOR_TIM (&htim2)
+extern TIM_HandleTypeDef htim4;
+#define MOTOR_TIM (&htim4)
 
 void motor_init(void);
 void motor_control(int16_t m1speed, int16_t m2speed);

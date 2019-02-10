@@ -6,26 +6,26 @@ static int16_t m1speed, m2speed;
 
 static __IO uint32_t up_bsrr;
 static __IO uint32_t cc1_bsrr;
-static __IO uint32_t cc3_bsrr;
+static __IO uint32_t cc2_bsrr;
 
-extern DMA_HandleTypeDef hdma_tim2_up;
-extern DMA_HandleTypeDef hdma_tim2_ch1;
-extern DMA_HandleTypeDef hdma_tim2_ch3;
+extern DMA_HandleTypeDef hdma_tim4_up;
+extern DMA_HandleTypeDef hdma_tim4_ch1;
+extern DMA_HandleTypeDef hdma_tim4_ch2;
 
 #define MOTOR_PORT M1P_GPIO_Port
 
 void motor_init(void) {
   // Use DMA to generate PWM waveform
-  HAL_DMA_Start_IT(&hdma_tim2_up, (uint32_t)&up_bsrr, (uint32_t)&MOTOR_PORT->BSRR, 1);
+  HAL_DMA_Start_IT(&hdma_tim4_up, (uint32_t)&up_bsrr, (uint32_t)&MOTOR_PORT->BSRR, 1);
   __HAL_TIM_ENABLE_DMA(MOTOR_TIM, TIM_DMA_UPDATE);
   
-  HAL_DMA_Start_IT(&hdma_tim2_ch1, (uint32_t)&cc1_bsrr, (uint32_t)&MOTOR_PORT->BSRR, 1);
+  HAL_DMA_Start_IT(&hdma_tim4_ch1, (uint32_t)&cc1_bsrr, (uint32_t)&MOTOR_PORT->BSRR, 1);
   __HAL_TIM_ENABLE_DMA(MOTOR_TIM, TIM_DMA_CC1);
   TIM_CCxChannelCmd(MOTOR_TIM->Instance, TIM_CHANNEL_1, TIM_CCx_ENABLE);
   
-  HAL_DMA_Start_IT(&hdma_tim2_ch3, (uint32_t)&cc3_bsrr, (uint32_t)&MOTOR_PORT->BSRR, 1);
-  __HAL_TIM_ENABLE_DMA(MOTOR_TIM, TIM_DMA_CC3);
-  TIM_CCxChannelCmd(MOTOR_TIM->Instance, TIM_CHANNEL_3, TIM_CCx_ENABLE);
+  HAL_DMA_Start_IT(&hdma_tim4_ch2, (uint32_t)&cc2_bsrr, (uint32_t)&MOTOR_PORT->BSRR, 1);
+  __HAL_TIM_ENABLE_DMA(MOTOR_TIM, TIM_DMA_CC2);
+  TIM_CCxChannelCmd(MOTOR_TIM->Instance, TIM_CHANNEL_2, TIM_CCx_ENABLE);
   
   __HAL_TIM_ENABLE(MOTOR_TIM);
 }
@@ -67,12 +67,12 @@ void motor_control(int16_t m1s, int16_t m2s) {
   
   // set falling edge for motor 2 PWM
   if (m2s < 1000 && m2s > -1000) {
-    cc3_bsrr = (M2P_Pin|M2N_Pin) << 16;
+    cc2_bsrr = (M2P_Pin|M2N_Pin) << 16;
   } else {
-    cc3_bsrr = 0;
+    cc2_bsrr = 0;
   }
   
   // set duty cycles for motor PWM
   __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_1, abs(m1speed));
-  __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_3, abs(m2speed));
+  __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_2, abs(m2speed));
 }
