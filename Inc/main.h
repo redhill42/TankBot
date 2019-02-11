@@ -80,6 +80,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define BEEP_Pin GPIO_PIN_13
 #define BEEP_GPIO_Port GPIOC
+#define I2C_SDA_Pin GPIO_PIN_1
+#define I2C_SDA_GPIO_Port GPIOC
 #define M1N_Pin GPIO_PIN_4
 #define M1N_GPIO_Port GPIOA
 #define M1P_Pin GPIO_PIN_5
@@ -96,6 +98,8 @@ void Error_Handler(void);
 #define PS2_CS_GPIO_Port GPIOB
 #define PS2_CLK_Pin GPIO_PIN_11
 #define PS2_CLK_GPIO_Port GPIOB
+#define I2C_SCL_Pin GPIO_PIN_9
+#define I2C_SCL_GPIO_Port GPIOC
 #define SERVO1_Pin GPIO_PIN_10
 #define SERVO1_GPIO_Port GPIOC
 #define SERVO2_Pin GPIO_PIN_11
