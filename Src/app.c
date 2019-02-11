@@ -46,12 +46,16 @@ static enum KeyPressState check_key_press(uint16_t key, uint16_t mask, struct Ke
   return NO_KEY_PRESS;
 }
 
+static int map(int x, int in_min, int in_max, int out_min, int out_max) {
+  return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
+}
+
 void app_main(const void* args) {
   uint16_t key;
   uint8_t lx, ly;
   struct KeyPress select_key = {0};
   struct KeyPress start_key = {0};
-  
+
   servo_init();
   motor_init();
   ps2_init();
@@ -119,10 +123,21 @@ void app_main(const void* args) {
     } else {
       beep_stop();
     }
-
-    int16_t speed = (127-ly)/12*100; // map 0..255 to 1000..-1000
-    if (speed != 0) {
+    
+    int16_t speed;
+  
+    if (ly <= 100) {
+      // forward, map 100..0 to 600..1000
+      speed = map(ly, 100, 0, 6, 11) * 100;
+      if (speed > 1000)
+        speed = 1000;
       motor_control(speed, speed);
+    } else if (ly >= 155) {
+      // backward, map 155..255 to -600..-1000
+      speed = map(ly, 155, 255, 6, 11) * 100;
+      if (speed > 1000)
+        speed = 1000;
+      motor_control(-speed, -speed);
     } else if (lx == 0) { 
       // turn left
       motor_control(-1000, 1000);

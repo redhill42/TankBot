@@ -4,9 +4,9 @@
 
 static int16_t m1speed, m2speed;
 
-static __IO uint32_t up_bsrr;
-static __IO uint32_t cc1_bsrr;
-static __IO uint32_t cc2_bsrr;
+static __IO uint32_t up_bsrr  = 0;
+static __IO uint32_t cc1_bsrr = (M1P_Pin|M1N_Pin) << 16;;
+static __IO uint32_t cc2_bsrr = (M2P_Pin|M2N_Pin) << 16;
 
 extern DMA_HandleTypeDef hdma_tim4_up;
 extern DMA_HandleTypeDef hdma_tim4_ch1;
@@ -57,20 +57,6 @@ void motor_control(int16_t m1s, int16_t m2s) {
   }
   
   up_bsrr = tmp;
-  
-  // set falling edge for motor 1 PWM
-  if (m1s < 1000 && m1s > -1000) {
-    cc1_bsrr = (M1P_Pin|M1N_Pin) << 16;
-  } else {
-    cc1_bsrr = 0;
-  }
-  
-  // set falling edge for motor 2 PWM
-  if (m2s < 1000 && m2s > -1000) {
-    cc2_bsrr = (M2P_Pin|M2N_Pin) << 16;
-  } else {
-    cc2_bsrr = 0;
-  }
   
   // set duty cycles for motor PWM
   __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_1, abs(m1speed));

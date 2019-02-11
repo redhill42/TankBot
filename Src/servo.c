@@ -10,7 +10,7 @@
 #define P2D(p)  (((p)-500)*180/2000)  /* Convert PWM duty cycle to degree */
 
 static const uint16_t servo_pwm_init[] = {
-  D2P(90), D2P(90), D2P(90), D2P(40), D2P(60), D2P(92)
+  D2P(90), D2P(90), D2P(50), D2P(0), D2P(60), D2P(96)
 };
 
 static __IO uint16_t servo_pwm[SERVO_CNT];

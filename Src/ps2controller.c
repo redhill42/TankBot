@@ -133,6 +133,11 @@ void ps2_init(void) {
  * Read the gamepad. You need to call this whenever you want update state.
  */
 uint16_t ps2_get_key(uint16_t keep) {
+  if (ps2_data[1] == 0 || ps2_data[1] == 0xFF) {
+    // Receiver not connected?
+    return 0;
+  }
+  
   osMutexWait(ps2_mutexHandle, 10000);
   
   // Retrieve key value from raw ps2 data
