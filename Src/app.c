@@ -171,6 +171,22 @@ static void control_motor(uint8_t lx, uint8_t ly) {
   }
 }
 
+static void control_beep(uint8_t on) {
+  static uint8_t beep = 0;
+  
+  if (on) {
+    if (!beep) {
+      beep = 1;
+      beep_start(440);
+    }
+  } else {
+    if (beep) {
+      beep = 0;
+      beep_stop();
+    }
+  }
+}
+
 void app_main(const void* args) {
   uint16_t key;
   uint8_t  lx, ly;
@@ -182,6 +198,7 @@ void app_main(const void* args) {
   motor_init();
   ps2_init();
   adxl345_init();
+  osDelay(200);
   
   for (;;osDelay(1)) {
     if (tilt_detect()) {
@@ -222,11 +239,6 @@ void app_main(const void* args) {
 
     control_servo(key);
     control_motor(lx, ly);
-    
-    if (key & PSB_L3) {
-      beep_start();
-    } else {
-      beep_stop();
-    }
+    control_beep((key&PSB_L3) != 0);
   }
 }

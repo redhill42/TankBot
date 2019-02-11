@@ -41,6 +41,7 @@
 /* USER CODE BEGIN Includes */
 #include "servo.h"
 #include "motor.h"
+#include "beep.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -78,6 +79,7 @@ extern DMA_HandleTypeDef hdma_tim4_up;
 extern DMA_HandleTypeDef hdma_tim4_ch1;
 extern DMA_HandleTypeDef hdma_tim4_ch2;
 extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 /* USER CODE BEGIN EV */
 
@@ -251,6 +253,20 @@ void TIM2_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles TIM3 global interrupt.
+  */
+void TIM3_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM3_IRQn 0 */
+
+  /* USER CODE END TIM3_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim3);
+  /* USER CODE BEGIN TIM3_IRQn 1 */
+
+  /* USER CODE END TIM3_IRQn 1 */
+}
+
+/**
   * @brief This function handles TIM4 global interrupt.
   */
 void TIM4_IRQHandler(void)
@@ -268,12 +284,16 @@ void TIM4_IRQHandler(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
   if (htim->Instance == SERVO_TIM->Instance) {
     servo_pwm_start();
+  } else if (htim->Instance == BEEP_TIM->Instance) {
+    beep_pwm_pulse();
   }
 }
 
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == SERVO_TIM->Instance) {
     servo_pwm_pulse();
+  } else if (htim->Instance == BEEP_TIM->Instance) {
+    beep_pwm_pulse();
   }
 }
 /* USER CODE END 1 */

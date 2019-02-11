@@ -7,8 +7,15 @@ extern "C" {
 
 #include "stm32f1xx_hal.h"
 
-void beep_start(void);
+int beep_start(uint32_t frequency);
 void beep_stop(void);
+
+// Private
+extern TIM_HandleTypeDef htim3;
+#define BEEP_TIM (&htim3)
+#define BEEP_TIM_CHANNEL TIM_CHANNEL_1
+
+void beep_pwm_pulse(void);
 
 #ifdef __cplusplus
 }
