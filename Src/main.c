@@ -72,9 +72,11 @@ DMA_HandleTypeDef hdma_tim4_ch2;
 UART_HandleTypeDef huart1;
 
 osThreadId defaultTaskHandle;
+osThreadId servo_taskHandle;
 osTimerId ps2_timerHandle;
 osTimerId beep_timerHandle;
 osMutexId ps2_mutexHandle;
+osMutexId servo_mutexHandle;
 /* USER CODE BEGIN PV */
 #ifdef __GNUC__
   /* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
@@ -108,6 +110,7 @@ static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM4_Init(void);
 void app_main(void const * argument);
+extern void servo_daemon(void const * argument);
 extern void ps2_raw_read(void const * argument);
 extern void beep_task(void const * argument);
 
@@ -161,6 +164,10 @@ int main(void)
   osMutexDef(ps2_mutex);
   ps2_mutexHandle = osMutexCreate(osMutex(ps2_mutex));
 
+  /* definition and creation of servo_mutex */
+  osMutexDef(servo_mutex);
+  servo_mutexHandle = osMutexCreate(osMutex(servo_mutex));
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
@@ -186,6 +193,10 @@ int main(void)
   /* definition and creation of defaultTask */
   osThreadDef(defaultTask, app_main, osPriorityNormal, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* definition and creation of servo_task */
+  osThreadDef(servo_task, servo_daemon, osPriorityNormal, 0, 128);
+  servo_taskHandle = osThreadCreate(osThread(servo_task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */

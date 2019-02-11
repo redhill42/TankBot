@@ -3,6 +3,7 @@
 #include "servo.h"
 #include "motor.h"
 #include "ps2controller.h"
+#include "adxl345.h"
 #include "beep.h"
 
 #define DELTA 2
@@ -13,7 +14,7 @@ struct KeyPress {
 };
 
 enum KeyPressState {
-  NO_KEY_PRESS,
+  KEY_PRESS_NONE,
   KEY_PRESS_TIMEOUT,
   KEY_PRESS_LONG,
   KEY_PRESS_SHORT
@@ -43,29 +44,155 @@ static enum KeyPressState check_key_press(uint16_t key, uint16_t mask, struct Ke
       }
     }
   }
-  return NO_KEY_PRESS;
+  return KEY_PRESS_NONE;
+}
+
+static const int16_t grab_left[][6] = {
+/*   1   2   3   4    5    6   */
+  { 90, 90,  0,  0, 144,  90}, // 1: standby
+  {120, -1, 90, 90,  90,  90}, // 2: stretch
+  { -1, -1, -1, -1,  -1, 180}, // 3: rotate shoulder
+  { -1, -1, -1, -1,   0,  -1}, // 4: hold up with shoulder
+  { -1, -1, -1, 10,  -1,  -1}, // 5: hold up with elbow
+  { -1, -1, -1, 45,  36,  -1}, // 6: lift up shoulder
+  { -1, -1, -1, -1,  -1,  90}, // 7: rotate shoulder forward
+  { 90, 90, 50,  0,  60,  96}  // 8: reset all
+};
+
+static const int16_t grab_right[][6] = {
+/*   1   2   3   4    5   6   */
+  { 90, 90,  0,  0, 144, 90}, // 1: standby
+  {120, -1, 90, 90,  90, 90}, // 2: stretch
+  { -1, -1, -1, -1,  -1,  0}, // 3: rotate shoulder
+  { -1, -1, -1, -1,   0, -1}, // 4: hold up with shoulder
+  { -1, -1, -1, 10,  -1, -1}, // 5: hold up with elbow
+  { -1, -1, -1, 45,  36, -1}, // 6: lift up shoulder
+  { -1, -1, -1, -1,  -1, 90}, // 7: rotate shoulder forward
+  { 90, 90, 50,  0,  60, 96}  // 8: reset all
+};
+
+#define TILT_LEFT     1
+#define TILT_RIGHT    2
+#define TILT_TIMEOUT  2000
+
+static uint8_t tilt_detect(void) {
+  static uint8_t  tilt;
+  static uint32_t tilt_time;
+
+  short x, y, z;
+  uint8_t t;
+
+  if (!servo_sequence_finished() ) {
+    return 1;
+  }
+  
+  adxl345_read(&x, &y, &z);
+  t = (x<-200) ? TILT_LEFT : (x>200) ? TILT_RIGHT : 0;
+  
+  if (t != tilt) {
+    // Tilt detected, start timer
+    tilt = t;
+    tilt_time = 0;
+  } else if (t != 0 && ++tilt_time > TILT_TIMEOUT) {
+    // Tilt timeout, recover from tilt
+    if (tilt == TILT_LEFT) {
+      servo_play_sequence(grab_left, sizeof(grab_left)/sizeof(*grab_left), 1000);
+    } else {
+      servo_play_sequence(grab_right, sizeof(grab_right)/sizeof(*grab_right), 1000);
+    }
+    tilt = 0;
+    return 1;
+  }
+  
+  return 0;
 }
 
 static int map(int x, int in_min, int in_max, int out_min, int out_max) {
   return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
 }
 
+static void control_servo(uint16_t key) {
+  if (key == 0) {
+    return;
+  }
+  
+  servo_stop_replay();
+
+  if (key & PSB_PAD_UP)
+    servo_add(SERVO_SHOULDER_UD, -DELTA);
+  if (key & PSB_PAD_DOWN)
+    servo_add(SERVO_SHOULDER_UD, DELTA);
+  if (key & PSB_PAD_LEFT)
+    servo_add(SERVO_SHOULDER_ROT, DELTA);
+  if (key & PSB_PAD_RIGHT)
+    servo_add(SERVO_SHOULDER_ROT, -DELTA);
+  if (key & PSB_TRIANGLE)
+    servo_add(SERVO_ELBOW_UD, -DELTA);
+  if (key & PSB_CROSS)
+    servo_add(SERVO_ELBOW_UD, DELTA);
+  if (key & PSB_SQUARE)
+    servo_add(SERVO_WRIST_UD, -DELTA);
+  if (key & PSB_CIRCLE)
+    servo_add(SERVO_WRIST_UD, DELTA);
+  if (key & PSB_L1)
+    servo_add(SERVO_WRIST_ROT, -DELTA);
+  if (key & PSB_R1)
+    servo_add(SERVO_WRIST_ROT, DELTA);
+  if (key & PSB_L2)
+    servo_add(SERVO_PAW, -DELTA);
+  if (key & PSB_R2)
+    servo_add(SERVO_PAW, DELTA);
+}
+
+static void control_motor(uint8_t lx, uint8_t ly) {
+  int16_t speed;
+  
+  if (ly <= 110) {
+    // forward, map 110..0 to 600..1000
+    speed = map(ly, 110, 0, 6, 11) * 100;
+    if (speed > 1000)
+      speed = 1000;
+    motor_control(speed, speed);
+  } else if (ly >= 145) {
+    // backward, map 145..255 to -600..-1000
+    speed = map(ly, 145, 255, 6, 11) * 100;
+    if (speed > 1000)
+      speed = 1000;
+    motor_control(-speed, -speed);
+  } else if (lx == 0) { 
+    // turn left
+    motor_control(-1000, 1000);
+  } else if (lx == 255) {
+    // turn right
+    motor_control(1000, -1000);
+  } else {
+    // stop
+    motor_control(0, 0);
+  }
+}
+
 void app_main(const void* args) {
   uint16_t key;
-  uint8_t lx, ly;
-  struct KeyPress select_key = {0};
-  struct KeyPress start_key = {0};
+  uint8_t  lx, ly;
+  
+  struct KeyPress select = {0};
+  struct KeyPress start = {0};
 
   servo_init();
   motor_init();
   ps2_init();
+  adxl345_init();
   
-  while (1) {
+  for (;;osDelay(1)) {
+    if (tilt_detect()) {
+      continue;
+    }
+    
     key = ps2_get_key(PSB_SELECT|PSB_START|PSB_L3);
     lx  = ps2_get_stick(PSS_LX);
     ly  = ps2_get_stick(PSS_LY);
     
-    switch (check_key_press(key, PSB_SELECT, &select_key)) {
+    switch (check_key_press(key, PSB_SELECT, &select)) {
       case KEY_PRESS_TIMEOUT:
         HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
         break;
@@ -79,12 +206,12 @@ void app_main(const void* args) {
         break;
     }
     
-    switch (check_key_press(key, PSB_START, &start_key)) {
+    switch (check_key_press(key, PSB_START, &start)) {
       case KEY_PRESS_TIMEOUT:
         HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
         break;
       case KEY_PRESS_LONG:
-        servo_replay();
+        servo_start_replay();
         break;
       case KEY_PRESS_SHORT:
         servo_reset();
@@ -92,63 +219,14 @@ void app_main(const void* args) {
       default:
         break;
     }
-    
-    if (key & PSB_PAD_UP)
-      servo_add(SERVO_SHOULDER_UD, -DELTA);
-    if (key & PSB_PAD_DOWN)
-      servo_add(SERVO_SHOULDER_UD, DELTA);
-    if (key & PSB_PAD_LEFT)
-      servo_add(SERVO_SHOULDER_ROT, DELTA);
-    if (key & PSB_PAD_RIGHT)
-      servo_add(SERVO_SHOULDER_ROT, -DELTA);
-    if (key & PSB_TRIANGLE)
-      servo_add(SERVO_ELBOW_UD, -DELTA);
-    if (key & PSB_CROSS)
-      servo_add(SERVO_ELBOW_UD, DELTA);
-    if (key & PSB_SQUARE)
-      servo_add(SERVO_WRIST_UD, -DELTA);
-    if (key & PSB_CIRCLE)
-      servo_add(SERVO_WRIST_UD, DELTA);
-    if (key & PSB_L1)
-      servo_add(SERVO_WRIST_ROT, -DELTA);
-    if (key & PSB_R1)
-      servo_add(SERVO_WRIST_ROT, DELTA);
-    if (key & PSB_L2)
-      servo_add(SERVO_PAW, -DELTA);
-    if (key & PSB_R2)
-      servo_add(SERVO_PAW, DELTA);
+
+    control_servo(key);
+    control_motor(lx, ly);
     
     if (key & PSB_L3) {
       beep_start();
     } else {
       beep_stop();
     }
-    
-    int16_t speed;
-  
-    if (ly <= 100) {
-      // forward, map 100..0 to 600..1000
-      speed = map(ly, 100, 0, 6, 11) * 100;
-      if (speed > 1000)
-        speed = 1000;
-      motor_control(speed, speed);
-    } else if (ly >= 155) {
-      // backward, map 155..255 to -600..-1000
-      speed = map(ly, 155, 255, 6, 11) * 100;
-      if (speed > 1000)
-        speed = 1000;
-      motor_control(-speed, -speed);
-    } else if (lx == 0) { 
-      // turn left
-      motor_control(-1000, 1000);
-    } else if (lx == 255) {
-      // turn right
-      motor_control(1000, -1000);
-    } else {
-      // stop
-      motor_control(0, 0);
-    }
-    
-    osDelay(1);
   }
 }
