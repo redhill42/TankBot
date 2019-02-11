@@ -112,20 +112,20 @@ void ps2_raw_read(const void* args) {
  */
 void ps2_init(void) {
   // Initialize pins
-  CS_H;
-  CLK_H;
-  CMD_H;
+  CS_H; CLK_H; CMD_H;
   
   // Init by polling once
   ps2_raw_read(NULL);
-  ps2_raw_read(NULL);
-  ps2_raw_read(NULL);
   
-  // Lock to Analog Mode on stick
-  ps2_analog_mode();
+  do {
+    // Lock to Analog Mode on stick
+    ps2_analog_mode();
+    
+    // Poll to ensure mode set
+    ps2_raw_read(NULL);
+  } while ((ps2_data[1] & 0xF0) != 0x70);
   
-  // Initialize timer to read gamepad periodicly
-  ps2_raw_read(NULL);
+  // Initialize timer to read gamepad periodically
   osTimerStart(ps2_timerHandle, 20);
 }
 
