@@ -54,13 +54,29 @@ uint8_t motor_control(int16_t m1s, int16_t m2s) {
 
   // update PWM data
   portENTER_CRITICAL();
+  
   m1spd = m1s;
   m2spd = m2s;
   pwmup = ctl;
   m1pwm = m1p;
   m2pwm = m2p;
+  
   __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_1, m1p);
   __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_2, m2p);
+  
+  if (m1p==0 || m1p==1000) {
+    __HAL_TIM_DISABLE_IT(MOTOR_TIM, TIM_IT_CC1);
+  } else {
+    __HAL_TIM_ENABLE_IT(MOTOR_TIM, TIM_IT_CC1);
+  }
+  
+  if (m2p==0 || m2p==1000 || m2p==m1p) {
+    // use single channel to control two motors
+    __HAL_TIM_DISABLE_IT(MOTOR_TIM, TIM_IT_CC2);
+  } else {
+    __HAL_TIM_ENABLE_IT(MOTOR_TIM, TIM_IT_CC2);
+  }
+  
   portEXIT_CRITICAL();
   
   return 1;
@@ -69,8 +85,11 @@ uint8_t motor_control(int16_t m1s, int16_t m2s) {
 void motor_pwm_pulse(HAL_TIM_ActiveChannel channel) {
   switch (channel) {
     case HAL_TIM_ACTIVE_CHANNEL_1:
-      if (m1pwm>0 && m1pwm<1000)
+      if (m1pwm>0 && m1pwm<1000) {
         MOTOR_PORT->BRR = M1P_Pin | M1N_Pin;
+        if (m2pwm == m1pwm)
+          MOTOR_PORT->BRR = M2P_Pin | M2N_Pin;
+      }
       break;
 
     case HAL_TIM_ACTIVE_CHANNEL_2:

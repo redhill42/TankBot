@@ -107,10 +107,6 @@ static uint8_t tilt_detect(void) {
   return 0;
 }
 
-static int map(int x, int in_min, int in_max, int out_min, int out_max) {
-  return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
-}
-
 static void control_servo(uint16_t key) {
   if (key == 0) {
     return;
@@ -144,31 +140,60 @@ static void control_servo(uint16_t key) {
     servo_add(SERVO_PAW, DELTA);
 }
 
+static int map(int x, int in_min, int in_max, int out_min, int out_max) {
+  return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
+}
+
 static void control_motor(uint8_t lx, uint8_t ly) {
   int16_t speed;
+  int16_t m1spd, m2spd;
   
   if (ly <= 110) {
-    // forward, map 110..0 to 600..1000
-    speed = map(ly, 110, 0, 6, 11) * 100;
-    if (speed > 1000)
-      speed = 1000;
-    motor_control(speed, speed);
+    if (lx < 55) {
+      // turn left
+      m1spd = 600;
+      m2spd = 1000;
+    } else if (lx > 200) {
+      // turn right
+      m1spd = 1000;
+      m2spd = 600;
+    } else {
+      // forward, map 110..0 to 600..1000
+      speed = map(ly, 110, 0, 6, 11) * 100;
+      if (speed > 1000)
+        speed = 1000;
+      m1spd = m2spd = speed;
+    }
   } else if (ly >= 145) {
-    // backward, map 145..255 to -600..-1000
-    speed = map(ly, 145, 255, 6, 11) * 100;
-    if (speed > 1000)
-      speed = 1000;
-    motor_control(-speed, -speed);
+    if (lx < 55) {
+      // turn back left
+      m1spd = -600;
+      m2spd = -1000;
+    } else if (lx > 200) {
+      // turn back right
+      m1spd = -1000;
+      m2spd = -600;
+    } else {
+      // backward, map 145..255 to -600..-1000
+      speed = map(ly, 145, 255, 6, 11) * 100;
+      if (speed > 1000)
+        speed = 1000;
+      m1spd = m2spd = -speed;
+    }
   } else if (lx == 0) { 
-    // turn left
-    motor_control(-1000, 1000);
+    // rotate left
+    m1spd = -1000;
+    m2spd = 1000;
   } else if (lx == 255) {
-    // turn right
-    motor_control(1000, -1000);
+    // rotate right
+    m1spd = 1000;
+    m2spd = -1000;
   } else {
     // stop
-    motor_control(0, 0);
+    m1spd = m2spd = 0;
   }
+
+  motor_control(m1spd, m2spd);
 }
 
 static void control_beep(uint8_t on) {
