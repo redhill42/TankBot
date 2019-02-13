@@ -5,10 +5,10 @@
 extern "C" {
 #endif
 
-#include "stm32f1xx_hal.h"
+#include "main.h"
 
-int beep_start(uint32_t frequency);
-void beep_stop(void);
+void tone(uint32_t frequency);
+void no_tone(void);
 
 // Private
 extern TIM_HandleTypeDef htim3;

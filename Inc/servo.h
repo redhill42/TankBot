@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "stm32f1xx_hal.h"
+#include "main.h"
 
 #define SERVO_CNT           6
 
@@ -27,7 +27,7 @@ void servo_init(void);
  * @param  angle: the value to write to the servo, from 0 to 180
  * @retval 1 for success, 0 for invalid servo ID
  */
-uint8_t servo_set(uint8_t id, int angle);
+bool servo_set(uint8_t id, int angle);
 
 /**
  * @brief  Add a value to the servo, controlling the shaft accordingly.
@@ -35,7 +35,7 @@ uint8_t servo_set(uint8_t id, int angle);
  * @param  inc: The angle increment, may be negative
  * @retval 1 for success, 0 for invalid servo ID
  */
-uint8_t servo_add(uint8_t id, int inc);
+bool servo_add(uint8_t id, int inc);
 
 /**
  * @brief  Get the current angle of the servo (the value passed to the last call to servo_set()).
@@ -48,7 +48,7 @@ int servo_get(uint8_t id);
  * @brief  Determine whether the servo is in action.
  * @retval 1 if servo in action, 0 otherwise.
  */
-uint8_t servo_in_action(void);
+bool servo_in_action(void);
 
 /**
  * @brief  Reset all servo to initial angles
@@ -60,8 +60,8 @@ void servo_record(void);
 void servo_start_replay(void);
 void servo_stop_replay(void);
 
-uint8_t servo_play_sequence(const int16_t (*sequence)[SERVO_CNT], size_t length, uint32_t delay);
-uint8_t servo_sequence_finished(void);
+bool servo_play_sequence(const int16_t (*sequence)[SERVO_CNT], size_t length, uint32_t delay);
+bool servo_sequence_finished(void);
 
 // Private
 extern TIM_HandleTypeDef htim2;

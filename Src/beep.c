@@ -3,7 +3,7 @@
 #include "beep.h"
 #include "servo.h"
 
-int beep_start(uint32_t frequency) {
+void tone(uint32_t frequency) {
   uint32_t period = 1000000/frequency;
   
   __HAL_TIM_SET_COUNTER(BEEP_TIM, 0);
@@ -12,11 +12,9 @@ int beep_start(uint32_t frequency) {
   
   HAL_TIM_Base_Start_IT(BEEP_TIM);
   HAL_TIM_OC_Start_IT(BEEP_TIM, BEEP_TIM_CHANNEL);
-  
-  return 1;
 }
 
-void beep_stop(void) {
+void no_tone(void) {
   HAL_TIM_Base_Stop_IT(BEEP_TIM);
   HAL_TIM_OC_Stop_IT(BEEP_TIM, BEEP_TIM_CHANNEL);
 }

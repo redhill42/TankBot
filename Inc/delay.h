@@ -5,9 +5,15 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
+#include "main.h"
 
-void HAL_Delay_us(uint32_t time);
+typedef uint32_t stopwatch_t;
+
+void     HAL_Delay_us(uint32_t time);
+void     SW_Start(stopwatch_t* sw);
+uint32_t SW_Stop(stopwatch_t* sw);
+void     SW_Reset(stopwatch_t* sw);
+bool     SW_Elapsed(stopwatch_t* sw, uint32_t time);
 
 #ifdef __cplusplus
 }

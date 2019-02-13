@@ -96,7 +96,7 @@ static void I2C_NoAck(void) {
 /**
  * Wait ACK signal from slave.
  */
-static uint8_t I2C_WaitAck(void) {
+static bool I2C_WaitAck(void) {
   uint8_t time = 0;
   
   SDA_In();
@@ -109,12 +109,12 @@ static uint8_t I2C_WaitAck(void) {
     time++;
     if (time > 250) {
       I2C_Stop();
-      return 0;
+      return false;
     }
   }
   
   SCL_L;
-  return 1;
+  return true;
 }
 
 static void I2C_SendByte(uint8_t data) {

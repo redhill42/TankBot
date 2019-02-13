@@ -43,14 +43,14 @@ static const uint16_t servo_pwm_init[] = {
 static __IO uint16_t servo_pwm[SERVO_CNT];
 static __IO uint16_t servo_pwm_set[SERVO_CNT];
 
-static __IO uint8_t servo_action; /* servo movement is in progress */
+static __IO bool servo_action; /* servo movement is in progress */
 
 ///////////////////////////////////////////////////////////////////////////////
 // Servo replay sequence
 
 static uint16_t  servo_records[SERVO_MAX_RECORD][SERVO_CNT];
 static uint8_t   servo_record_cnt = 0;
-static uint8_t   servo_replay_started = 0;
+static bool      servo_replay_started = false;
 static uint8_t   servo_replay_step = 0;
 
 static int16_t const (*servo_sequence)[SERVO_CNT];
@@ -92,9 +92,9 @@ void servo_reset(void) {
   }
 }
 
-uint8_t servo_set(uint8_t id, int angle) {
+bool servo_set(uint8_t id, int angle) {
   if (id==0 || id>SERVO_CNT)
-    return 0;
+    return false;
 
   if (angle < 0)
     angle = 0;
@@ -102,15 +102,15 @@ uint8_t servo_set(uint8_t id, int angle) {
     angle = 180;
 
   servo_pwm_set[id-1] = (uint16_t)D2P(angle);
-  return 1;
+  return true;
 }
 
-uint8_t servo_add(uint8_t id, int delta) {
+bool servo_add(uint8_t id, int delta) {
   return servo_set(id, servo_get(id) + delta);
 }
 
 static void set_target_pwm(void) {
-  uint8_t action = 0;
+  uint8_t action = false;
   
   // Set target PWM duty cycles. This is done in every 20ms (50Hz)
   for (int i=0; i<SERVO_CNT; i++) {
@@ -125,7 +125,7 @@ static void set_target_pwm(void) {
           cur = set;
       }
       servo_pwm[i] = cur;
-      action = 1;
+      action = true;
     }
   }
   
@@ -143,7 +143,7 @@ int servo_get(uint8_t id) {
     return angle/2000;
 }
 
-uint8_t servo_in_action(void) {
+bool servo_in_action(void) {
   return servo_action;
 }
 
@@ -199,14 +199,14 @@ void servo_stop_replay(void) {
   signal(SIG_STOP_REPLAY);
 }
 
-uint8_t servo_play_sequence(const int16_t (*sequence)[SERVO_CNT], size_t length, uint32_t delay) {
+bool servo_play_sequence(const int16_t (*sequence)[SERVO_CNT], size_t length, uint32_t delay) {
   if (!lock(100)) {
-    return 0;
+    return false;
   }
   
   if (servo_sequence != NULL || servo_replay_started) {
     unlock();
-    return 0;
+    return false;
   }
   
   servo_sequence = sequence;
@@ -215,10 +215,10 @@ uint8_t servo_play_sequence(const int16_t (*sequence)[SERVO_CNT], size_t length,
   servo_sequence_delay = delay;
   
   unlock();
-  return 1;
+  return true;
 }
 
-uint8_t servo_sequence_finished(void) {
+bool servo_sequence_finished(void) {
   return servo_sequence == NULL;
 }
 
@@ -226,7 +226,7 @@ uint8_t servo_sequence_finished(void) {
 // The servo event handling
 
 static void do_start_record() {
-  servo_replay_started = 0;
+  servo_replay_started = false;
   servo_record_cnt = 0;
 }
 
@@ -241,13 +241,13 @@ static void do_record(void) {
 
 static void do_start_replay(void) {
   if (!servo_replay_started && servo_record_cnt>0) {
-    servo_replay_started = 1;
+    servo_replay_started = true;
     servo_replay_step = 0;
   }
 }
 
 static void do_stop_replay(void) {
-  servo_replay_started = 0;
+  servo_replay_started = false;
 }
 
 static void do_replay(void) {

@@ -5,10 +5,10 @@
 extern "C" {
 #endif
 
-#include <stm32f1xx_hal.h>
+#include "main.h"
 
 void motor_init(void);
-uint8_t motor_control(int16_t m1speed, int16_t m2speed);
+bool motor_control(int16_t m1speed, int16_t m2speed);
 
 // Private
 extern TIM_HandleTypeDef htim4;

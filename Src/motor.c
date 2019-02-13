@@ -21,11 +21,11 @@ void motor_init(void) {
   HAL_TIM_OC_Start_IT(MOTOR_TIM, TIM_CHANNEL_2);
 }
 
-uint8_t motor_control(int16_t m1s, int16_t m2s) {
+bool motor_control(int16_t m1s, int16_t m2s) {
   uint32_t ctl = 0, m1p = 0, m2p = 0;
   
   if (m1s == m1spd && m2s == m2spd) {
-    return 0;
+    return false;
   }
   
   // set raising edge for motor 1 PWM
@@ -79,7 +79,7 @@ uint8_t motor_control(int16_t m1s, int16_t m2s) {
   
   portEXIT_CRITICAL();
   
-  return 1;
+  return true;
 }
 
 void motor_pwm_pulse(HAL_TIM_ActiveChannel channel) {

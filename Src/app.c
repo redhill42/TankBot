@@ -5,12 +5,13 @@
 #include "ps2controller.h"
 #include "adxl345.h"
 #include "beep.h"
+#include "delay.h"
 
 #define DELTA 2
 
 struct KeyPress {
-  uint8_t pressed;
-  uint32_t time;
+  stopwatch_t time;
+  bool pressed;
 };
 
 enum KeyPressState {
@@ -25,11 +26,10 @@ static enum KeyPressState check_key_press(uint16_t key, uint16_t mask, struct Ke
     if (!kp->pressed) {
       // key pressed, start timer
       kp->pressed = 1;
-      kp->time = 0;
+      SW_Reset(&kp->time);
     } else {
       // key repeately pressed, increment timer and check for timeout
-      kp->time++;
-      if (kp->time > 500) {
+      if (SW_Elapsed(&kp->time, 500)) {
         return KEY_PRESS_TIMEOUT;
       }
     }
@@ -37,7 +37,7 @@ static enum KeyPressState check_key_press(uint16_t key, uint16_t mask, struct Ke
     if (kp->pressed) {
       // key released, check timer for long or short press
       kp->pressed = 0;
-      if (kp->time > 500) {
+      if (SW_Elapsed(&kp->time, 500)) {
         return KEY_PRESS_LONG;
       } else {
         return KEY_PRESS_SHORT;
@@ -75,15 +75,15 @@ static const int16_t grab_right[][6] = {
 #define TILT_RIGHT    2
 #define TILT_TIMEOUT  2000
 
-static uint8_t tilt_detect(void) {
-  static uint8_t  tilt;
-  static uint32_t tilt_time;
+static bool tilt_detect(void) {
+  static uint8_t     tilt;
+  static stopwatch_t tilt_time;
 
   short x, y, z;
   uint8_t t;
 
   if (!servo_sequence_finished() ) {
-    return 1;
+    return true;
   }
   
   adxl345_read(&x, &y, &z);
@@ -92,8 +92,8 @@ static uint8_t tilt_detect(void) {
   if (t != tilt) {
     // Tilt detected, start timer
     tilt = t;
-    tilt_time = 0;
-  } else if (t != 0 && ++tilt_time > TILT_TIMEOUT) {
+    SW_Reset(&tilt_time);
+  } else if (t != 0 && SW_Elapsed(&tilt_time, TILT_TIMEOUT)) {
     // Tilt timeout, recover from tilt
     if (tilt == TILT_LEFT) {
       servo_play_sequence(grab_left, sizeof(grab_left)/sizeof(*grab_left), 1000);
@@ -101,10 +101,10 @@ static uint8_t tilt_detect(void) {
       servo_play_sequence(grab_right, sizeof(grab_right)/sizeof(*grab_right), 1000);
     }
     tilt = 0;
-    return 1;
+    return true;
   }
   
-  return 0;
+  return false;
 }
 
 static void control_servo(uint16_t key) {
@@ -196,18 +196,18 @@ static void control_motor(uint8_t lx, uint8_t ly) {
   motor_control(m1spd, m2spd);
 }
 
-static void control_beep(uint8_t on) {
-  static uint8_t beep = 0;
+static void control_beep(bool on) {
+  static bool beep = 0;
   
   if (on) {
     if (!beep) {
       beep = 1;
-      beep_start(440);
+      tone(440);
     }
   } else {
     if (beep) {
       beep = 0;
-      beep_stop();
+      no_tone();
     }
   }
 }
