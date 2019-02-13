@@ -76,37 +76,69 @@ static const int16_t grab_right[][6] = {
   { 90, 90, 50,  0,  60, 96}  // 8: reset all
 };
 
+// Tilt states:
+//    Unknow:   The tilt state is unknown, read accelerometer to get the state
+//    Detected: Tilt detected, delay one more second to check again
+//    Recover:  Recovering from tilt state
+#define TILT_UNKNOW   0
+#define TILT_DETECTED 1
+#define TILT_RECOVER  2
+
 #define TILT_LEFT     1
 #define TILT_RIGHT    2
-#define TILT_TIMEOUT  2000
+
+#define TILT_CHECKTIME    1000
+#define TILT_CONFIRMTIME  2000
 
 static bool tilt_detect(void) {
-  static uint8_t     tilt;
-  static stopwatch_t tilt_time;
+  static uint8_t     state = TILT_UNKNOW;
+  static uint8_t     mode;
+  static stopwatch_t checktime;
 
   short x, y, z;
   uint8_t t;
 
-  if (!servo_sequence_finished() ) {
-    return true;
+  if (state == TILT_UNKNOW && SW_Elapsed(&checktime, TILT_CHECKTIME)) {
+    // Read tilt state from accelerometer
+    adxl345_read(&x, &y, &z);
+    mode = (x<-200) ? TILT_LEFT : (x>200) ? TILT_RIGHT : 0;
+    if (mode != 0)
+      state = TILT_DETECTED;
+    SW_Reset(&checktime);
+    return false;
   }
   
-  adxl345_read(&x, &y, &z);
-  t = (x<-200) ? TILT_LEFT : (x>200) ? TILT_RIGHT : 0;
-  
-  if (t != tilt) {
-    // Tilt detected, start timer
-    tilt = t;
-    SW_Reset(&tilt_time);
-  } else if (t != 0 && SW_Elapsed(&tilt_time, TILT_TIMEOUT)) {
-    // Tilt timeout, recover from tilt
-    if (tilt == TILT_LEFT) {
+  if (state == TILT_DETECTED && SW_Elapsed(&checktime, TILT_CONFIRMTIME)) {
+    // Read accelerometer again to make sure tilt state not change
+    adxl345_read(&x, &y, &z);
+    t = (x<-200) ? TILT_LEFT : (x>200) ? TILT_RIGHT : 0;
+    
+    // if tilt mode changed, then restart from beginning
+    if (t != mode) {
+      state = TILT_UNKNOW;
+      SW_Reset(&checktime);
+      return false;
+    }
+    
+    // tilt really happend, recover from tilt
+    state = TILT_RECOVER;
+    if (mode == TILT_LEFT) {
       servo_play_sequence(grab_left, sizeof(grab_left)/sizeof(*grab_left), 1000);
     } else {
       servo_play_sequence(grab_right, sizeof(grab_right)/sizeof(*grab_right), 1000);
     }
-    tilt = 0;
     return true;
+  }
+  
+  // Wait until recovering finished
+  if (state == TILT_RECOVER) {
+    if (servo_sequence_finished()) {
+      state = TILT_UNKNOW;
+      SW_Reset(&checktime);
+      return false;
+    } else {
+      return true;
+    }
   }
   
   return false;
