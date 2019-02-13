@@ -4,10 +4,15 @@
 #include "motor.h"
 #include "ps2controller.h"
 #include "adxl345.h"
+#include "rangefinder.h"
 #include "beep.h"
 #include "delay.h"
 
 #define DELTA 2
+
+static int map(int x, int in_min, int in_max, int out_min, int out_max) {
+  return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
+}
 
 struct KeyPress {
   stopwatch_t time;
@@ -140,8 +145,27 @@ static void control_servo(uint16_t key) {
     servo_add(SERVO_PAW, DELTA);
 }
 
-static int map(int x, int in_min, int in_max, int out_min, int out_max) {
-  return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
+static bool check_collision(bool forward) {
+  static bool impact = false;
+  
+  uint32_t distance = get_distance();
+  if (distance == INVALID_DISTANCE) {
+    return false;
+  }
+  
+  if (forward && (distance<300 || (impact && distance<310))) {
+    if (!impact) {
+      impact = true;
+      beep_start("=6:50/1CR@", true);
+    }
+  } else {
+    if (impact) {
+      impact = false;
+      beep_stop();
+    }
+  }
+  
+  return impact;
 }
 
 static void control_motor(uint8_t lx, uint8_t ly) {
@@ -193,6 +217,11 @@ static void control_motor(uint8_t lx, uint8_t ly) {
     m1spd = m2spd = 0;
   }
 
+  // stop if impact
+  if (check_collision(m1spd>0 && m2spd>0)) {
+    m1spd = m2spd = 0;
+  }
+
   motor_control(m1spd, m2spd);
 }
 
@@ -202,12 +231,12 @@ static void control_beep(bool on) {
   if (on) {
     if (!beep) {
       beep = 1;
-      tone(440);
+      beep_start("=6C0", false);
     }
   } else {
     if (beep) {
       beep = 0;
-      no_tone();
+      beep_stop();
     }
   }
 }
@@ -223,6 +252,7 @@ void app_main(const void* args) {
   motor_init();
   ps2_init();
   adxl345_init();
+  rangefinder_init();
   osDelay(200);
   
   for (;;osDelay(1)) {

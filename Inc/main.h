@@ -94,10 +94,15 @@ void Error_Handler(void);
 #define PS2_CMD_GPIO_Port GPIOC
 #define PS2_DATA_Pin GPIO_PIN_0
 #define PS2_DATA_GPIO_Port GPIOB
+#define TRIG_Pin GPIO_PIN_1
+#define TRIG_GPIO_Port GPIOB
 #define PS2_CS_Pin GPIO_PIN_10
 #define PS2_CS_GPIO_Port GPIOB
 #define PS2_CLK_Pin GPIO_PIN_11
 #define PS2_CLK_GPIO_Port GPIOB
+#define ECHO_Pin GPIO_PIN_12
+#define ECHO_GPIO_Port GPIOB
+#define ECHO_EXTI_IRQn EXTI15_10_IRQn
 #define I2C_SCL_Pin GPIO_PIN_9
 #define I2C_SCL_GPIO_Port GPIOC
 #define SERVO1_Pin GPIO_PIN_10

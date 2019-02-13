@@ -29,6 +29,8 @@ static uint8_t ps2_send_receive(uint8_t cmd) {
   uint8_t data = 0;
   uint16_t bit;
   
+  portENTER_CRITICAL();
+  
   for (bit=1; bit<0x100; bit<<=1) {
     // drop the clock
     CLK_L;
@@ -58,6 +60,7 @@ static uint8_t ps2_send_receive(uint8_t cmd) {
   // Clock should already be high at this point, but just to be sure.
   CLK_H;
   
+  portEXIT_CRITICAL();
   return data;
 }
 

@@ -10,6 +10,9 @@ extern "C" {
 void tone(uint32_t frequency);
 void no_tone(void);
 
+bool beep_start(const char* notes, bool flash);
+void beep_stop(void);
+
 // Private
 extern TIM_HandleTypeDef htim3;
 #define BEEP_TIM (&htim3)
