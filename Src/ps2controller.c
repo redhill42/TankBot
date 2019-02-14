@@ -129,7 +129,7 @@ void ps2_init(void) {
   } while ((ps2_data[1] & 0xF0) != 0x70);
   
   // Initialize timer to read gamepad periodically
-  osTimerStart(ps2_timerHandle, 20);
+  osTimerStart(ps2_timerHandle, 50);
 }
 
 /**

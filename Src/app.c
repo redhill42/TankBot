@@ -8,8 +8,6 @@
 #include "beep.h"
 #include "delay.h"
 
-#define DELTA 2
-
 static int map(int x, int in_min, int in_max, int out_min, int out_max) {
   return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
 }
@@ -21,7 +19,6 @@ struct KeyPress {
 
 enum KeyPressState {
   KEY_PRESS_NONE,
-  KEY_PRESS_TIMEOUT,
   KEY_PRESS_LONG,
   KEY_PRESS_SHORT
 };
@@ -35,7 +32,8 @@ static enum KeyPressState check_key_press(uint16_t key, uint16_t mask, struct Ke
     } else {
       // key repeately pressed, increment timer and check for timeout
       if (SW_Elapsed(&kp->time, 500)) {
-        return KEY_PRESS_TIMEOUT;
+        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+        return KEY_PRESS_NONE;
       }
     }
   } else {
@@ -43,6 +41,7 @@ static enum KeyPressState check_key_press(uint16_t key, uint16_t mask, struct Ke
       // key released, check timer for long or short press
       kp->pressed = 0;
       if (SW_Elapsed(&kp->time, 500)) {
+        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
         return KEY_PRESS_LONG;
       } else {
         return KEY_PRESS_SHORT;
@@ -144,6 +143,8 @@ static bool tilt_detect(void) {
   return false;
 }
 
+#define SERVO_DELTA 5
+
 static void control_servo(uint16_t key) {
   if (key == 0) {
     return;
@@ -152,29 +153,29 @@ static void control_servo(uint16_t key) {
   servo_stop_replay();
 
   if (key & PSB_PAD_UP)
-    servo_add(SERVO_SHOULDER_UD, -DELTA);
+    servo_add(SERVO_SHOULDER_UD, -SERVO_DELTA);
   if (key & PSB_PAD_DOWN)
-    servo_add(SERVO_SHOULDER_UD, DELTA);
+    servo_add(SERVO_SHOULDER_UD, SERVO_DELTA);
   if (key & PSB_PAD_LEFT)
-    servo_add(SERVO_SHOULDER_ROT, DELTA);
+    servo_add(SERVO_SHOULDER_ROT, SERVO_DELTA);
   if (key & PSB_PAD_RIGHT)
-    servo_add(SERVO_SHOULDER_ROT, -DELTA);
+    servo_add(SERVO_SHOULDER_ROT, -SERVO_DELTA);
   if (key & PSB_TRIANGLE)
-    servo_add(SERVO_ELBOW_UD, -DELTA);
+    servo_add(SERVO_ELBOW_UD, -SERVO_DELTA);
   if (key & PSB_CROSS)
-    servo_add(SERVO_ELBOW_UD, DELTA);
+    servo_add(SERVO_ELBOW_UD, SERVO_DELTA);
   if (key & PSB_SQUARE)
-    servo_add(SERVO_WRIST_UD, -DELTA);
+    servo_add(SERVO_WRIST_UD, -SERVO_DELTA);
   if (key & PSB_CIRCLE)
-    servo_add(SERVO_WRIST_UD, DELTA);
+    servo_add(SERVO_WRIST_UD, SERVO_DELTA);
   if (key & PSB_L1)
-    servo_add(SERVO_WRIST_ROT, -DELTA);
+    servo_add(SERVO_WRIST_ROT, -SERVO_DELTA);
   if (key & PSB_R1)
-    servo_add(SERVO_WRIST_ROT, DELTA);
+    servo_add(SERVO_WRIST_ROT, SERVO_DELTA);
   if (key & PSB_L2)
-    servo_add(SERVO_PAW, -DELTA);
+    servo_add(SERVO_PAW, -SERVO_DELTA);
   if (key & PSB_R2)
-    servo_add(SERVO_PAW, DELTA);
+    servo_add(SERVO_PAW, SERVO_DELTA);
 }
 
 static bool check_collision(bool forward) {
@@ -297,13 +298,12 @@ void app_main(const void* args) {
     ly  = ps2_get_stick(PSS_LY);
     
     switch (check_key_press(key, PSB_SELECT, &select)) {
-      case KEY_PRESS_TIMEOUT:
-        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-        break;
       case KEY_PRESS_LONG:
+        beep_start("=5:60/1A", false);
         servo_start_record();
         break;
       case KEY_PRESS_SHORT:
+        beep_start("=5:60/1A", false);
         servo_record();
         break;
       default:
@@ -311,9 +311,6 @@ void app_main(const void* args) {
     }
     
     switch (check_key_press(key, PSB_START, &start)) {
-      case KEY_PRESS_TIMEOUT:
-        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-        break;
       case KEY_PRESS_LONG:
         servo_start_replay();
         break;
