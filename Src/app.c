@@ -274,7 +274,7 @@ static void control_beep(bool on) {
   if (on) {
     if (!beep) {
       beep = 1;
-      beep_start("=6C0", false);
+      beep_start("=4A0", false);
     }
   } else {
     if (beep) {

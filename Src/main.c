@@ -81,6 +81,7 @@ osTimerId displayHandle;
 osMutexId ps2_mutexHandle;
 osMutexId servo_mutexHandle;
 osMutexId beep_mutexHandle;
+osMutexId i2c_mutexHandle;
 /* USER CODE BEGIN PV */
 #ifdef __GNUC__
   /* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
@@ -181,6 +182,10 @@ int main(void)
   /* definition and creation of beep_mutex */
   osMutexDef(beep_mutex);
   beep_mutexHandle = osMutexCreate(osMutex(beep_mutex));
+
+  /* definition and creation of i2c_mutex */
+  osMutexDef(i2c_mutex);
+  i2c_mutexHandle = osMutexCreate(osMutex(i2c_mutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -599,7 +604,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pins : I2C_SDA_Pin I2C_SCL_Pin */
   GPIO_InitStruct.Pin = I2C_SDA_Pin|I2C_SCL_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
