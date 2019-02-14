@@ -9,6 +9,7 @@ extern "C" {
 
 void motor_init(void);
 bool motor_control(int16_t m1speed, int16_t m2speed);
+void get_motor_state(int16_t* m1speed, int16_t* m2speed);
 
 // Private
 extern TIM_HandleTypeDef htim4;

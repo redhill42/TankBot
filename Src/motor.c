@@ -82,6 +82,11 @@ bool motor_control(int16_t m1s, int16_t m2s) {
   return true;
 }
 
+void get_motor_state(int16_t* m1s, int16_t* m2s) {
+  *m1s = m1spd;
+  *m2s = m2spd;
+}
+
 void motor_pwm_pulse(HAL_TIM_ActiveChannel channel) {
   switch (channel) {
     case HAL_TIM_ACTIVE_CHANNEL_1:

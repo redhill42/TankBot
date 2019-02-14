@@ -94,9 +94,16 @@ static bool tilt_detect(void) {
   static uint8_t     mode;
   static stopwatch_t checktime;
 
+  int16_t m1speed, m2speed;
   short x, y, z;
   uint8_t t;
 
+  // Don't detect if motor is moving
+  get_motor_state(&m1speed, &m2speed);
+  if (!(m1speed==0 && m2speed==0)) {
+    return false;
+  }
+  
   if (state == TILT_UNKNOW && SW_Elapsed(&checktime, TILT_CHECKTIME)) {
     // Read tilt state from accelerometer
     adxl345_read(&x, &y, &z);
