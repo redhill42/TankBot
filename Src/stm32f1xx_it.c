@@ -42,6 +42,7 @@
 #include "servo.h"
 #include "motor.h"
 #include "beep.h"
+#include "ledmatrix.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -75,6 +76,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern DMA_HandleTypeDef hdma_tim1_ch3;
 extern DMA_HandleTypeDef hdma_tim4_up;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
@@ -195,6 +197,20 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles DMA1 channel6 global interrupt.
+  */
+void DMA1_Channel6_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel6_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel6_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_tim1_ch3);
+  /* USER CODE BEGIN DMA1_Channel6_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel6_IRQn 1 */
+}
+
+/**
   * @brief This function handles DMA1 channel7 global interrupt.
   */
 void DMA1_Channel7_IRQHandler(void)
@@ -280,6 +296,8 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
     motor_pwm_pulse(htim->Channel);
   } else if (htim->Instance == BEEP_TIM->Instance) {
     beep_pwm_pulse();
+  } else if (htim->Instance == TIM1) {
+    led_pwm_pulse();
   }
 }
 /* USER CODE END 1 */

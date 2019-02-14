@@ -5,8 +5,11 @@
 #include "ps2controller.h"
 #include "adxl345.h"
 #include "rangefinder.h"
+#include "ledmatrix.h"
 #include "beep.h"
 #include "delay.h"
+
+extern void display_init(void);
 
 static int map(int x, int in_min, int in_max, int out_min, int out_max) {
   return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
@@ -293,6 +296,7 @@ void app_main(const void* args) {
   ps2_init();
   adxl345_init();
   rangefinder_init();
+  display_init();
   osDelay(200);
   
   for (;;osDelay(1)) {

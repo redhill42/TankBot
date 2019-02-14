@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;               ../Drivers/STM32F1xx_HAL_Driver/Inc;               ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;               ../Drivers/CMSIS/Device/ST/STM32F1xx/Include;               ../Drivers/CMSIS/Include;               ../Middlewares/Third_Party/FreeRTOS/Source/include;               ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;               ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3</IncludePath>
+              <IncludePath>../Inc;                  ../Drivers/STM32F1xx_HAL_Driver/Inc;                    ../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;                    ../Drivers/CMSIS/Device/ST/STM32F1xx/Include;                    ../Drivers/CMSIS/Include;                    ../Middlewares/Third_Party/FreeRTOS/Source/include;                    ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;                    ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -431,6 +431,16 @@
               <FileName>ultrasonic.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\ultrasonic.c</FilePath>
+            </File>
+            <File>
+              <FileName>ledmatrix.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\ledmatrix.c</FilePath>
+            </File>
+            <File>
+              <FileName>display.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\display.c</FilePath>
             </File>
             <File>
               <FileName>main.c</FileName>
