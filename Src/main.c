@@ -77,11 +77,12 @@ osThreadId servo_taskHandle;
 osThreadId beep_taskHandle;
 osTimerId ps2_timerHandle;
 osTimerId ultrasonic_timerHandle;
-osTimerId displayHandle;
+osTimerId display_timerHandle;
 osMutexId ps2_mutexHandle;
 osMutexId servo_mutexHandle;
 osMutexId beep_mutexHandle;
 osMutexId i2c_mutexHandle;
+osMutexId display_mutexHandle;
 /* USER CODE BEGIN PV */
 #ifdef __GNUC__
   /* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
@@ -187,6 +188,10 @@ int main(void)
   osMutexDef(i2c_mutex);
   i2c_mutexHandle = osMutexCreate(osMutex(i2c_mutex));
 
+  /* definition and creation of display_mutex */
+  osMutexDef(display_mutex);
+  display_mutexHandle = osMutexCreate(osMutex(display_mutex));
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
@@ -204,9 +209,9 @@ int main(void)
   osTimerDef(ultrasonic_timer, ultrasonic_task);
   ultrasonic_timerHandle = osTimerCreate(osTimer(ultrasonic_timer), osTimerPeriodic, NULL);
 
-  /* definition and creation of display */
-  osTimerDef(display, display_task);
-  displayHandle = osTimerCreate(osTimer(display), osTimerPeriodic, NULL);
+  /* definition and creation of display_timer */
+  osTimerDef(display_timer, display_task);
+  display_timerHandle = osTimerCreate(osTimer(display_timer), osTimerPeriodic, NULL);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */

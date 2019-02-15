@@ -1,6 +1,7 @@
 #include <string.h>
 #include "main.h"
 #include "cmsis_os.h"
+#include "display.h"
 #include "ledmatrix.h"
 #include "motor.h"
 #include "servo.h"
@@ -21,7 +22,7 @@ typedef uint32_t (*COLOR_FN)(int id, uint32_t color);
 /** 
  * Simple text display routine. Handles text scrolling and spacing.
  */
-void display_string_at(const char* str, int xpos, int ypos, uint32_t color, COLOR_FN color_fn) {
+static void display_string_at(const char* str, int xpos, int ypos, uint32_t color, COLOR_FN color_fn) {
   int  len   = strlen(str);
   int  chpos = xpos / CHAR_WIDTH;
   char ch1   = str[chpos%len];
@@ -77,16 +78,22 @@ static uint32_t rainbow(int id, uint32_t color) {
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef enum {
-  STOP,
-  RECORDING,
+  UNKNOWN,
+  IDLE,
+  NEW_MESSAGE,
+  MESSAGE,
   FORWARD,
   BACKWARD,
   TURN_LEFT,
   TURN_RIGHT,
+  BATTERY_LOW,
 } BotState;
 
-static BotState current_state = STOP;
-static uint16_t delay = 1;
+static BotState current_state = IDLE;
+static const char* post_message;
+static uint32_t post_message_color;
+static uint16_t idle_counter = 1;
+static uint16_t display_counter = 0;
 
 static const char* text;
 static int16_t xpos, ypos;
@@ -94,26 +101,20 @@ static int8_t  xdir, ydir;
 static uint32_t color;
 static COLOR_FN color_fn = normal;
 
-extern osTimerId displayHandle;
+extern osTimerId display_timerHandle;
+extern osMutexId display_mutexHandle;
 
 void display_init(void) {
   led_set_brightness(10);
-  osTimerStart(displayHandle, 100);
+  osTimerStart(display_timerHandle, 100);
 }
 
-static BotState get_current_state(void) {
-  int16_t m1spd, m2spd;
-  
-  get_motor_state(&m1spd, &m2spd);
-  if (m1spd>0 && m2spd>0)
-    return FORWARD;
-  if (m1spd<0 && m2spd<0)
-    return BACKWARD;
-  if (m1spd<0 && m2spd>0)
-    return TURN_LEFT;
-  if (m1spd>0 && m2spd<0)
-    return TURN_RIGHT;
-  return STOP;
+void display_message(const char* message, uint32_t color) {
+  if (osMutexWait(display_mutexHandle, 500) == osOK) {
+    post_message = message;
+    post_message_color = color;
+    osMutexRelease(display_mutexHandle);
+  }
 }
 
 static void update_servo_recording_state() {
@@ -132,22 +133,78 @@ static void update_servo_recording_state() {
   led_update(1);
 }
 
+static BotState get_motor_state(void) {
+  int16_t m1spd, m2spd;
+  
+  get_motor_speed(&m1spd, &m2spd);
+  if (m1spd>0 && m2spd>0)
+    return FORWARD;
+  if (m1spd<0 && m2spd<0)
+    return BACKWARD;
+  if (m1spd<0 && m2spd>0)
+    return TURN_LEFT;
+  if (m1spd>0 && m2spd<0)
+    return TURN_RIGHT;
+  return IDLE;
+}
+
+static bool battery_low() {
+  return false; // TODO
+}
+
 void display_task(void const* args) {
-  if (servo_is_recording()) {
-    current_state = RECORDING;
-    update_servo_recording_state();
-    return;
+  BotState state;
+  const char* message = NULL;
+  uint32_t message_color = 0;
+  
+  // stop display when display time elapsed
+  if (text!=NULL && display_counter!=0 && --display_counter==0) {
+    current_state = UNKNOWN;
+  }
+
+  // get message atomically
+  if (osMutexWait(display_mutexHandle, 0) == osOK) {
+    message = post_message;
+    message_color = post_message_color;
+    post_message = NULL;
+    osMutexRelease(display_mutexHandle);
   }
   
-  BotState state = get_current_state();
+  // check current state
+  if (message != NULL) {
+    state = NEW_MESSAGE;
+  } else if (current_state == MESSAGE) {
+    state = MESSAGE;
+  } else if (servo_is_recording()) {
+    update_servo_recording_state();
+    current_state = UNKNOWN;
+    return;
+  } else {
+    state = get_motor_state();
+  }
+
+  if (state==IDLE && battery_low()) {
+    state = BATTERY_LOW;
+  }
   
-  if (state != current_state) {
+  // update if state changed
+  if (state!=current_state) {
     current_state = state;
+    text = NULL;
     xpos = ypos = 0;
     xdir = ydir = 0;
     color_fn = normal;
-    
+    display_counter = 0;
+
     switch (state) {
+    case NEW_MESSAGE:
+      text  = message;
+      color = message_color;
+      xdir  = 1;
+      display_counter = CHAR_WIDTH*(strlen(message)-1);
+      current_state = MESSAGE;
+      break;
+    
     case FORWARD:
       text  = "\x80";  // up arrow
       color = 0x00FF00;
@@ -172,23 +229,28 @@ void display_task(void const* args) {
       xdir  = -1;
       break;
     
+    case BATTERY_LOW:
+      display_string_at("\x84", 0, 0, 0xFF0000, normal);
+      break;
+    
     default:
-      text = NULL;
-      delay = 600;
+      current_state = IDLE;
+      idle_counter = 600;
       led_fill(0);
       led_update(true);
       break;
     }
   }
-
+  
   // display logo when idle
-  if (text==NULL && --delay==0) {
+  if (current_state==IDLE && text==NULL && --idle_counter==0) {
     text  = "TankBot ";
     xdir  = 1;
     color = 0;
     color_fn = rainbow;
   }
   
+  // display the current text
   if (text != NULL) {
     int width  = CHAR_WIDTH * strlen(text);
     int height = CHAR_HEIGHT;

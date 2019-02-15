@@ -894,4 +894,14 @@ static const uint8_t font[] = {
   ____XX__,
   ____X___,
   ________,
+  
+  /* 0x84: battery */
+  ________,
+  ________,
+  XXXXXXX_,
+  XX____XX,
+  XXX___XX,
+  XXXX__XX,
+  XXXXXXX_,
+  ________,
 };

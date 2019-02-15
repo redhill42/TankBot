@@ -5,11 +5,9 @@
 #include "ps2controller.h"
 #include "adxl345.h"
 #include "rangefinder.h"
-#include "ledmatrix.h"
+#include "display.h"
 #include "beep.h"
 #include "delay.h"
-
-extern void display_init(void);
 
 static int map(int x, int in_min, int in_max, int out_min, int out_max) {
   return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
@@ -102,7 +100,7 @@ static bool tilt_detect(void) {
   uint8_t t;
 
   // Don't detect if motor is moving
-  get_motor_state(&m1speed, &m2speed);
+  get_motor_speed(&m1speed, &m2speed);
   if (!(m1speed==0 && m2speed==0)) {
     return false;
   }

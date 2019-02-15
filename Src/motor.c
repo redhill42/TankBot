@@ -82,7 +82,7 @@ bool motor_control(int16_t m1s, int16_t m2s) {
   return true;
 }
 
-void get_motor_state(int16_t* m1s, int16_t* m2s) {
+void get_motor_speed(int16_t* m1s, int16_t* m2s) {
   *m1s = m1spd;
   *m2s = m2spd;
 }
