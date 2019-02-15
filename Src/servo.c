@@ -6,7 +6,6 @@
 // Definitions
 
 #define SERVO_PWM_INC     20
-#define SERVO_MAX_RECORD  50
 #define SERVO_DELAY       20
 
 /* Convert degree to PWM duty cycle */
@@ -48,7 +47,8 @@ static __IO bool servo_action; /* servo movement is in progress */
 ///////////////////////////////////////////////////////////////////////////////
 // Servo replay sequence
 
-static uint16_t  servo_records[SERVO_MAX_RECORD][SERVO_CNT];
+static bool      servo_recording = false;
+static uint16_t  servo_records[SERVO_MAX_RECORDS][SERVO_CNT];
 static uint8_t   servo_record_cnt = 0;
 static bool      servo_replay_started = false;
 static uint8_t   servo_replay_step = 0;
@@ -61,10 +61,10 @@ static uint32_t  servo_sequence_delay;
 ///////////////////////////////////////////////////////////////////////////////
 // Servo background event handling
 
-#define SIG_START_RECORD  0x0001
-#define SIG_RECORD        0x0002
-#define SIG_START_REPLAY  0x0004
-#define SIG_STOP_REPLAY   0x0008
+#define SIG_TOGGLE_RECORDING  0x0001
+#define SIG_RECORD            0x0002
+#define SIG_START_REPLAY      0x0004
+#define SIG_STOP_REPLAY       0x0008
 
 extern osThreadId servo_taskHandle;
 extern osMutexId  servo_mutexHandle;
@@ -183,12 +183,20 @@ void servo_pwm_pulse(void) {
   }
 }
 
-void servo_start_record(void) {
-  signal(SIG_START_RECORD);
+void servo_toggle_recording(void) {
+  signal(SIG_TOGGLE_RECORDING);
 }
 
 void servo_record(void) {
   signal(SIG_RECORD);
+}
+
+bool servo_is_recording(void) {
+  return servo_recording;
+}
+
+uint8_t servo_record_count(void) {
+  return servo_record_cnt;
 }
 
 void servo_start_replay(void) {
@@ -225,22 +233,30 @@ bool servo_sequence_finished(void) {
 ///////////////////////////////////////////////////////////////////////////////
 // The servo event handling
 
-static void do_start_record() {
-  servo_replay_started = false;
-  servo_record_cnt = 0;
+static void do_stop_replay(void);
+
+static void do_toggle_recording() {
+  // stop current replay before recording
+  do_stop_replay();
+  
+  if (servo_recording) {
+    servo_recording = false;
+  } else {
+    servo_recording = true;
+    servo_record_cnt = 0;
+  }
 }
 
 static void do_record(void) {
-  if (!servo_replay_started && servo_record_cnt<SERVO_MAX_RECORD) {
-    for (int i=0; i<SERVO_CNT; i++) {
+  if (servo_recording && servo_record_cnt<SERVO_MAX_RECORDS) {
+    for (int i=0; i<SERVO_CNT; i++)
       servo_records[servo_record_cnt][i] = servo_pwm[i];
-    }
     servo_record_cnt++;
   }
 }
 
 static void do_start_replay(void) {
-  if (!servo_replay_started && servo_record_cnt>0) {
+  if (!servo_replay_started && !servo_recording && servo_record_cnt>0) {
     servo_replay_started = true;
     servo_replay_step = 0;
   }
@@ -284,8 +300,8 @@ void servo_daemon(void const* args) {
     delay = SERVO_DELAY;
     
     if (evt.status == osEventSignal) {
-      if (evt.value.signals & SIG_START_RECORD) {
-        do_start_record();
+      if (evt.value.signals & SIG_TOGGLE_RECORDING) {
+        do_toggle_recording();
       } else if (evt.value.signals & SIG_RECORD) {
         do_record();
       } else if (evt.value.signals & SIG_START_REPLAY) {

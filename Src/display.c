@@ -3,6 +3,7 @@
 #include "cmsis_os.h"
 #include "ledmatrix.h"
 #include "motor.h"
+#include "servo.h"
 
 #include "font.inc"
 
@@ -77,6 +78,7 @@ static uint32_t rainbow(int id, uint32_t color) {
 
 typedef enum {
   STOP,
+  RECORDING,
   FORWARD,
   BACKWARD,
   TURN_LEFT,
@@ -114,7 +116,29 @@ static BotState get_current_state(void) {
   return STOP;
 }
 
+static void update_servo_recording_state() {
+  uint8_t cnt = servo_record_count();
+  
+  led_fill(0);
+  for (int i=0; i<LED_CFG_LEDS_CNT; i++) {
+    if (i < cnt) {
+      led_set_color(i, 0xFF0000);
+    } else if (i < SERVO_MAX_RECORDS) {
+      led_set_color(i, 0x0000FF);
+    } else {
+      led_set_color(i, 0);
+    }
+  }
+  led_update(1);
+}
+
 void display_task(void const* args) {
+  if (servo_is_recording()) {
+    current_state = RECORDING;
+    update_servo_recording_state();
+    return;
+  }
+  
   BotState state = get_current_state();
   
   if (state != current_state) {

@@ -311,11 +311,13 @@ void app_main(const void* args) {
     switch (check_key_press(key, PSB_SELECT, &select)) {
       case KEY_PRESS_LONG:
         beep_start("=5:60/1A", false);
-        servo_start_record();
+        servo_toggle_recording();
         break;
       case KEY_PRESS_SHORT:
-        beep_start("=5:60/1A", false);
-        servo_record();
+        if (servo_is_recording()) {
+          beep_start("=5:60/1A", false);
+          servo_record();
+        }
         break;
       default:
         break;

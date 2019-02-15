@@ -16,6 +16,8 @@ extern "C" {
 #define SERVO_SHOULDER_UD   5
 #define SERVO_SHOULDER_ROT  6
 
+#define SERVO_MAX_RECORDS  20
+
 /**
  * @brief  Initialize servo control
  */
@@ -55,8 +57,11 @@ bool servo_in_action(void);
  */
 void servo_reset(void);
 
-void servo_start_record(void);
+void servo_toggle_recording(void);
 void servo_record(void);
+bool servo_is_recording(void);
+uint8_t servo_record_count(void);
+
 void servo_start_replay(void);
 void servo_stop_replay(void);
 
