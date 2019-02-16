@@ -85,6 +85,8 @@ void Error_Handler(void);
 #define BEEP_GPIO_Port GPIOC
 #define I2C_SDA_Pin GPIO_PIN_1
 #define I2C_SDA_GPIO_Port GPIOC
+#define ADC_BAT_Pin GPIO_PIN_3
+#define ADC_BAT_GPIO_Port GPIOC
 #define M1N_Pin GPIO_PIN_4
 #define M1N_GPIO_Port GPIOA
 #define M1P_Pin GPIO_PIN_5
@@ -108,6 +110,8 @@ void Error_Handler(void);
 #define ECHO_EXTI_IRQn EXTI15_10_IRQn
 #define I2C_SCL_Pin GPIO_PIN_9
 #define I2C_SCL_GPIO_Port GPIOC
+#define WS2812_Pin GPIO_PIN_10
+#define WS2812_GPIO_Port GPIOA
 #define SERVO1_Pin GPIO_PIN_10
 #define SERVO1_GPIO_Port GPIOC
 #define SERVO2_Pin GPIO_PIN_11

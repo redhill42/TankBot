@@ -100,13 +100,20 @@ static int16_t xpos, ypos;
 static int8_t  xdir, ydir;
 static uint32_t color;
 static COLOR_FN color_fn = normal;
+static bool blink = false;
+static bool blink_state = false;
+static uint8_t blink_counter = 0;
 
 extern osTimerId display_timerHandle;
 extern osMutexId display_mutexHandle;
 
+extern void battery_check_init(void);
+extern bool battery_low(void);
+
 void display_init(void) {
   led_set_brightness(10);
   osTimerStart(display_timerHandle, 100);
+  battery_check_init();
 }
 
 void display_message(const char* message, uint32_t color) {
@@ -148,10 +155,6 @@ static BotState get_motor_state(void) {
   return IDLE;
 }
 
-static bool battery_low() {
-  return false; // TODO
-}
-
 void display_task(void const* args) {
   BotState state;
   const char* message = NULL;
@@ -188,13 +191,16 @@ void display_task(void const* args) {
   }
   
   // update if state changed
-  if (state!=current_state) {
+  if (state != current_state) {
     current_state = state;
     text = NULL;
     xpos = ypos = 0;
     xdir = ydir = 0;
     color_fn = normal;
     display_counter = 0;
+    blink = false;
+    blink_state = false;
+    blink_counter = 0;
 
     switch (state) {
     case NEW_MESSAGE:
@@ -230,7 +236,8 @@ void display_task(void const* args) {
       break;
     
     case BATTERY_LOW:
-      display_string_at("\x84", 0, 0, 0xFF0000, normal);
+      text  = "\x84"; // battery
+      blink = true;
       break;
     
     default:
@@ -254,8 +261,18 @@ void display_task(void const* args) {
   if (text != NULL) {
     int width  = CHAR_WIDTH * strlen(text);
     int height = CHAR_HEIGHT;
+
+    if (blink && blink_counter++ == 5) {
+      blink_state = !blink_state;
+      blink_counter = 0;
+    }
     
-    display_string_at(text, xpos, ypos, color, color_fn);
+    if (blink && !blink_state) {
+      led_fill(0);
+      led_update(true);
+    } else {
+      display_string_at(text, xpos, ypos, color, color_fn);
+    }
     
     xpos = (xpos+xdir+width ) % width;
     ypos = (ypos+ydir+height) % height;
