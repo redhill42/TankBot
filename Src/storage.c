@@ -18,9 +18,9 @@ static HAL_StatusTypeDef write_page(uint16_t address, uint8_t* buff, uint16_t si
   
   // wait for write complete
   while (!I2C_Transmit(EE_ADDRESS, NULL, 0)) {
-    if (SW_Elapsed(sw, timeout)) {
+    if (SW_Elapsed(sw, timeout))
       return HAL_TIMEOUT;
-    }
+    osDelay(1);
   }
   
   return HAL_OK;
