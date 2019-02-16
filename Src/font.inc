@@ -904,4 +904,34 @@ static const uint8_t font[] = {
   XXXX__XX,
   XXXXXXX_,
   ________,
+  
+  /* 0x85: stop */
+  XX___XX_,
+  XXX_XXX_,
+  _XXXXX__,
+  __XXX___,
+  _XXXXX__,
+  XXX_XXX_,
+  XX___XX_,
+  ________,
+  
+  /* 0x86: smiley */
+  __XXXX__,
+  _X____X_,
+  X______X,
+  X_X__X_X,
+  X_X__X_X,
+  X__XX__X,
+  _X____X_,
+  __XXXX__,
+  
+  /* 0x87: sad */
+  __XXXX__,
+  _X____X_,
+  X_X__X_X,
+  X______X,
+  X__XX__X,
+  X_X__X_X,
+  _X____X_,
+  __XXXX__,
 };

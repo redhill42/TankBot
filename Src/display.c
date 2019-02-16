@@ -90,10 +90,12 @@ typedef enum {
 } BotState;
 
 static BotState current_state = IDLE;
-static const char* post_message;
-static uint32_t post_message_color;
 static uint16_t idle_counter = 1;
 static uint16_t display_counter = 0;
+
+static const Message_t* post_message;
+static const Message_t* current_message;
+static uint8_t next_message_id;
 
 static const char* text;
 static int16_t xpos, ypos;
@@ -116,12 +118,53 @@ void display_init(void) {
   battery_check_init();
 }
 
-void display_message(const char* message, uint32_t color) {
+void message_init(Message_t* message, MessageLevel_t level, const char* text) {
+  osMutexWait(display_mutexHandle, osWaitForever);
+  message->id = ++next_message_id;
+  osMutexRelease(display_mutexHandle);
+  
+  message->level = level;
+  message->text = text;
+  message->keep_time = CHAR_WIDTH * (strlen(text)-1);
+  message->blink = false;
+  
+  switch (level) {
+  case ALERT:
+    message->color = 0xFF0000;
+    message->keep_time = 0;
+    break;
+  case WARNING:
+    message->color = 0xFFFF00;
+    break;
+  default:
+    message->color = 0x0000FF;
+    break;
+  }
+}
+
+bool display_message(const Message_t* message) {
+  bool retval = false;
   if (osMutexWait(display_mutexHandle, 500) == osOK) {
-    post_message = message;
-    post_message_color = color;
+    // the more important message have a lower message level value
+    if (current_message==NULL || message->level<=current_message->level) {
+      post_message = message;
+      retval = true;
+    }
     osMutexRelease(display_mutexHandle);
   }
+  return retval;
+}
+
+bool clear_message(uint8_t id) {
+  bool retval = false;
+  if (osMutexWait(display_mutexHandle, 500) == osOK) {
+    if (current_message!=NULL && current_message->id==id) {
+      current_message = NULL;
+      retval = true;
+    }
+    osMutexRelease(display_mutexHandle);
+  }
+  return retval;
 }
 
 static void update_servo_recording_state() {
@@ -157,8 +200,7 @@ static BotState get_motor_state(void) {
 
 void display_task(void const* args) {
   BotState state;
-  const char* message = NULL;
-  uint32_t message_color = 0;
+  const Message_t* message = NULL;
   
   // stop display when display time elapsed
   if (text!=NULL && display_counter!=0 && --display_counter==0) {
@@ -168,7 +210,6 @@ void display_task(void const* args) {
   // get message atomically
   if (osMutexWait(display_mutexHandle, 0) == osOK) {
     message = post_message;
-    message_color = post_message_color;
     post_message = NULL;
     osMutexRelease(display_mutexHandle);
   }
@@ -177,7 +218,7 @@ void display_task(void const* args) {
   if (message != NULL) {
     state = NEW_MESSAGE;
   } else if (current_state == MESSAGE) {
-    state = MESSAGE;
+    state = current_message!=NULL ? MESSAGE : UNKNOWN;
   } else if (servo_is_recording()) {
     update_servo_recording_state();
     current_state = UNKNOWN;
@@ -204,11 +245,14 @@ void display_task(void const* args) {
 
     switch (state) {
     case NEW_MESSAGE:
-      text  = message;
-      color = message_color;
-      xdir  = 1;
-      display_counter = CHAR_WIDTH*(strlen(message)-1);
+      current_message = message;
       current_state = MESSAGE;
+      text = message->text;
+      color = message->color;
+      blink = message->blink;
+      if (strlen(text) > 1)
+        xdir = 1;
+      display_counter = 10*message->keep_time;
       break;
     
     case FORWARD:
@@ -237,6 +281,7 @@ void display_task(void const* args) {
     
     case BATTERY_LOW:
       text  = "\x84"; // battery
+      color = 0x0000FF;
       blink = true;
       break;
     

@@ -9,6 +9,8 @@
 #include "beep.h"
 #include "delay.h"
 
+static Message_t stop_message;
+
 static int map(int x, int in_min, int in_max, int out_min, int out_max) {
   return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
 }
@@ -197,11 +199,13 @@ static bool check_collision(bool forward) {
   if (forward && (distance<300 || (impact && distance<310))) {
     if (!impact) {
       impact = true;
+      display_message(&stop_message);
       beep_start("=6:50/1CR@", true);
     }
   } else {
     if (impact) {
       impact = false;
+      clear_message(stop_message.id);
       beep_stop();
     }
   }
@@ -285,7 +289,7 @@ static void control_beep(bool on) {
 void app_main(const void* args) {
   uint16_t key;
   uint8_t  lx, ly;
-  
+
   struct KeyPress select = {0};
   struct KeyPress start = {0};
 
@@ -295,6 +299,7 @@ void app_main(const void* args) {
   adxl345_init();
   rangefinder_init();
   display_init();
+  message_init(&stop_message, ALERT, "\x85");
   osDelay(200);
   
   for (;;osDelay(1)) {
