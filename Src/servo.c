@@ -1,6 +1,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "servo.h"
+#include "storage.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Definitions
@@ -58,6 +59,9 @@ static size_t    servo_sequence_length;
 static size_t    servo_sequence_step;
 static uint32_t  servo_sequence_delay;
 
+static bool load_records(void);
+static bool store_records(void);
+
 ///////////////////////////////////////////////////////////////////////////////
 // Servo background event handling
 
@@ -81,6 +85,8 @@ void servo_init(void) {
     servo_pwm[i]     = servo_pwm_init[i];
     servo_pwm_set[i] = servo_pwm_init[i];
   }
+  
+  load_records();
   
   HAL_TIM_Base_Start_IT(SERVO_TIM);
   HAL_TIM_OC_Start_IT(SERVO_TIM, SERVO_TIM_CHANNEL);
@@ -233,13 +239,53 @@ bool servo_sequence_finished(void) {
 ///////////////////////////////////////////////////////////////////////////////
 // The servo event handling
 
+#define MAGIC 0130
+
 static void do_stop_replay(void);
+
+static bool load_records(void) {
+  uint8_t buf[2];
+  
+  // read magic and count
+  if (read_store(0, buf, 2) != HAL_OK)
+    return false;
+  if (buf[0]!=MAGIC || buf[1]>SERVO_MAX_RECORDS)
+    return false;
+  
+  // load servo records
+  uint8_t cnt = buf[1];
+  uint16_t size = cnt * sizeof(*servo_records);
+  if (read_store(2, (uint8_t*)servo_records, size) != HAL_OK)
+    return false;
+  
+  servo_record_cnt = cnt;
+  return true;
+}
+
+static bool store_records(void) {
+  uint8_t buf[2];
+  
+  // write magic and count
+  buf[0] = MAGIC;
+  buf[1] = servo_record_cnt;
+  if (write_store(0, buf, 2, 100) != HAL_OK)
+    return false;
+  
+  // write servo records
+  uint16_t size = servo_record_cnt * sizeof(*servo_records);
+  if (write_store(2, (uint8_t*)servo_records, size, 100) != HAL_OK)
+    return false;
+  
+  return true;
+}
 
 static void do_toggle_recording() {
   // stop current replay before recording
   do_stop_replay();
   
   if (servo_recording) {
+    if (servo_record_cnt != 0)
+      store_records();
     servo_recording = false;
   } else {
     servo_recording = true;

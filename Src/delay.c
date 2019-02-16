@@ -60,7 +60,7 @@ bool SW_Elapsed(stopwatch_t* sw, uint32_t time) {
   uint32_t tickstart = *sw;
   uint32_t tickstop = HAL_GetTick();
   
-  if (tickstop > tickstart) {
+  if (tickstop >= tickstart) {
     return tickstop - tickstart >= time;
   } else {
     return UINT32_MAX - tickstart + tickstop >= time;
