@@ -71,9 +71,7 @@ bool servo_sequence_finished(void);
 // Private
 extern TIM_HandleTypeDef htim2;
 #define SERVO_TIM (&htim2)
-#define SERVO_TIM_CHANNEL TIM_CHANNEL_1
 
-void servo_pwm_start(void);
 void servo_pwm_pulse(void);
 
 #ifdef __cplusplus

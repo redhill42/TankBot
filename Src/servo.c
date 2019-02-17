@@ -45,6 +45,9 @@ static __IO uint16_t servo_pwm_set[SERVO_CNT];
 
 static __IO bool servo_action; /* servo movement is in progress */
 
+static uint8_t  servo_pulse_id;
+static uint16_t servo_pulse_time;
+
 ///////////////////////////////////////////////////////////////////////////////
 // Servo replay sequence
 
@@ -89,7 +92,6 @@ void servo_init(void) {
   load_records();
   
   HAL_TIM_Base_Start_IT(SERVO_TIM);
-  HAL_TIM_OC_Start_IT(SERVO_TIM, SERVO_TIM_CHANNEL);
 }
 
 void servo_reset(void) {
@@ -115,29 +117,6 @@ bool servo_add(uint8_t id, int delta) {
   return servo_set(id, servo_get(id) + delta);
 }
 
-static void set_target_pwm(void) {
-  uint8_t action = false;
-  
-  // Set target PWM duty cycles. This is done in every 20ms (50Hz)
-  for (int i=0; i<SERVO_CNT; i++) {
-    uint16_t cur = servo_pwm[i];
-    uint16_t set = servo_pwm_set[i];
-    if (cur != set) {
-      if (cur < set) {
-        if ((cur+=SERVO_PWM_INC) > set)
-          cur = set;
-      } else {
-        if ((cur-=SERVO_PWM_INC) < set)
-          cur = set;
-      }
-      servo_pwm[i] = cur;
-      action = true;
-    }
-  }
-  
-  servo_action = action;
-}
-
 int servo_get(uint8_t id) {
   if (id==0 || id>SERVO_CNT)
     return 0;
@@ -153,40 +132,46 @@ bool servo_in_action(void) {
   return servo_action;
 }
 
-void servo_pwm_start(void) {
-  uint16_t min_pwm = 0xFFFF;
-
-  set_target_pwm();
-  
-  // start PWM pulse rising edges
-  for (int i=0; i<SERVO_CNT; i++) {
-    HAL_GPIO_WritePin(servo_ports[i], servo_pins[i], GPIO_PIN_SET);
-    if (servo_pwm[i] < min_pwm) {
-      min_pwm = servo_pwm[i];
-    }
-  }
-  
-  // set next PWM falling edge time
-  __HAL_TIM_SET_COMPARE(SERVO_TIM, SERVO_TIM_CHANNEL, min_pwm);
-}
-
 void servo_pwm_pulse(void) {
-  uint16_t pwm = __HAL_TIM_GET_COMPARE(SERVO_TIM, SERVO_TIM_CHANNEL);
-  uint16_t next_pwm = 0xFFFF;
-  
-  // set PWM falling edges
-  for (int i=0; i<SERVO_CNT; i++) {
-    if (servo_pwm[i] <= pwm) {
-      HAL_GPIO_WritePin(servo_ports[i], servo_pins[i], GPIO_PIN_RESET);
-    } else if (servo_pwm[i] < next_pwm) {
-      next_pwm = servo_pwm[i];
+  uint8_t id = servo_pulse_id++;
+  uint16_t cur, set;
+
+  if (id == 0) {
+    servo_action = false;
+  } else {
+    // lower previous PWM pulse
+    servo_ports[id-1]->ODR &= ~servo_pins[id-1];
+    
+    if (id == SERVO_CNT) {
+      // start a new 50Hz period
+      SERVO_TIM->Instance->ARR = 20000 - servo_pulse_time;
+      servo_pulse_id = 0;
+      servo_pulse_time = 0;
+      return;
     }
   }
   
-  // set next PWM failling edge time
-  if (next_pwm != 0xFFFF) {
-    __HAL_TIM_SET_COMPARE(SERVO_TIM, SERVO_TIM_CHANNEL, next_pwm);
+  // raising current PWM pulse
+  servo_ports[id]->ODR |= servo_pins[id];
+
+  // update PWM duty cycle
+  cur = servo_pwm[id];
+  set = servo_pwm_set[id];
+  if (cur != set) {
+    if (cur < set) {
+      if ((cur+=SERVO_PWM_INC) > set)
+        cur = set;
+    } else {
+      if ((cur-=SERVO_PWM_INC) < set)
+        cur = set;
+    }
+    servo_pwm[id] = cur;
+    servo_action = true;
   }
+  
+  // trigger next PWM pulse with appropriate duty cycle
+  servo_pulse_time += cur;
+  SERVO_TIM->Instance->ARR = cur;
 }
 
 void servo_toggle_recording(void) {

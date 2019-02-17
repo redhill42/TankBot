@@ -21,6 +21,8 @@ extern osTimerId ps2_timerHandle;
 extern osMutexId ps2_mutexHandle;
 static uint8_t ps2_data[9];
 
+#define PS2_DATA_OK() ((ps2_data[1]&0xF0)==0x70 && ps2_data[2]==0x5A)
+
 /**
  * The actual serial transfer. Handles clock. The PS2 controler is full duplex,
  * so this will send a byte as well as receive one.
@@ -114,19 +116,27 @@ void ps2_raw_read(const void* args) {
  * be called before any other functions are called.
  */
 void ps2_init(void) {
+  uint32_t timeout = 100;
+  
   // Initialize pins
   CS_H; CLK_H; CMD_H;
   
   // Init by polling once
   ps2_raw_read(NULL);
   
-  do {
+  for (;;) {
     // Lock to Analog Mode on stick
     ps2_analog_mode();
     
     // Poll to ensure mode set
     ps2_raw_read(NULL);
-  } while ((ps2_data[1] & 0xF0) != 0x70);
+    
+    if (PS2_DATA_OK())
+      break;
+    if (--timeout == 0)
+      return; // failed to initialize controller
+    osDelay(100);
+  }
   
   // Initialize timer to read gamepad periodically
   osTimerStart(ps2_timerHandle, 50);
@@ -136,7 +146,7 @@ void ps2_init(void) {
  * Read the gamepad. You need to call this whenever you want update state.
  */
 uint16_t ps2_get_key(uint16_t keep) {
-  if (ps2_data[1] == 0 || ps2_data[1] == 0xFF) {
+  if (!PS2_DATA_OK()) {
     // Receiver not connected?
     return 0;
   }
@@ -157,7 +167,7 @@ uint16_t ps2_get_key(uint16_t keep) {
 }
 
 uint8_t ps2_get_stick(uint8_t stick) {
-  if (ps2_data[1] == 0x73)
+  if (PS2_DATA_OK())
     return ps2_data[stick];
   return 128;
 }

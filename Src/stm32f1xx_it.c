@@ -283,16 +283,14 @@ void EXTI15_10_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
   if (htim->Instance == SERVO_TIM->Instance) {
-    servo_pwm_start();
+    servo_pwm_pulse();
   } else if (htim->Instance == BEEP_TIM->Instance) {
     beep_pwm_pulse();
   }
 }
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
-  if (htim->Instance == SERVO_TIM->Instance) {
-    servo_pwm_pulse();
-  } else if (htim->Instance == MOTOR_TIM->Instance) {
+  if (htim->Instance == MOTOR_TIM->Instance) {
     motor_pwm_pulse(htim->Channel);
   } else if (htim->Instance == BEEP_TIM->Instance) {
     beep_pwm_pulse();

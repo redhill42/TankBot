@@ -155,7 +155,7 @@ static bool tilt_detect(void) {
 
 #define SERVO_DELTA 5
 
-static void control_servo(uint16_t key) {
+static void do_servo_control(uint16_t key) {
   if (key == 0) {
     return;
   }
@@ -267,7 +267,7 @@ static bool check_collision(bool forward) {
   return impact;
 }
 
-static void control_motor(uint8_t lx, uint8_t ly) {
+static void do_motor_control(uint8_t lx, uint8_t ly) {
   int16_t speed;
   int16_t m1spd, m2spd;
   
@@ -324,7 +324,7 @@ static void control_motor(uint8_t lx, uint8_t ly) {
   motor_control(m1spd, m2spd);
 }
 
-static void control_beep(bool on) {
+static void do_beep_control(bool on) {
   static bool beep = 0;
   
   if (on) {
@@ -340,12 +340,15 @@ static void control_beep(bool on) {
   }
 }
 
+static void special_action(void);
+
 void app_main(const void* args) {
   uint16_t key;
   uint8_t  lx, ly;
 
   struct KeyPress select = {0};
   struct KeyPress start = {0};
+  struct KeyPress r3 = {0};
 
   servo_init();
   motor_init();
@@ -361,7 +364,7 @@ void app_main(const void* args) {
       continue;
     }
     
-    key = ps2_get_key(PSB_SELECT|PSB_START|PSB_L3);
+    key = ps2_get_key(PSB_SELECT|PSB_START|PSB_L3|PSB_R3);
     lx  = ps2_get_stick(PSS_LX);
     ly  = ps2_get_stick(PSS_LY);
     
@@ -391,8 +394,27 @@ void app_main(const void* args) {
         break;
     }
 
-    control_servo(key);
-    control_motor(lx, ly);
-    control_beep((key&PSB_L3) != 0);
+    do_servo_control(key);
+    do_motor_control(lx, ly);
+    do_beep_control((key&PSB_L3) != 0);
+    
+    if (check_key_press(key, PSB_R3, &r3) != KEY_PRESS_NONE) {
+      special_action();
+    }
   }
+}
+
+static void special_action(void) {
+  beep_start(
+    "=4:1500/3"
+    "AAAF6.C+12.AF6.C+12.A2.R12"
+    "+EEEF6.C12G-#F-6.C12.A-2.R12-"
+    "+AA-6.A-12AG#6G6F#12F12F#6R6-"
+    "+A-#6D#D6C#6C12B-12C6R6-"
+    "F12G#F6.A12C+A6.C+12E+2.R12"
+    "+AA-6.A-12AG#6G6F#12F12F#6R6-"
+    "+A-#6D#D6C#6C12B-12C6R6-"
+    "F6G#F6.C+12AF6.C+12A2.",
+    true
+  );
 }
