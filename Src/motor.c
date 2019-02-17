@@ -52,6 +52,14 @@ bool motor_control(int16_t m1s, int16_t m2s) {
     m2p = 0;
   }
 
+  // error correction
+  if (m1s == m2s) {
+    if (m2s == 1000)
+      m2p = 980;
+    else if (m1s == -1000)
+      m1p = 985;
+  }
+  
   // update PWM data
   portENTER_CRITICAL();
   
@@ -88,12 +96,15 @@ void get_motor_speed(int16_t* m1s, int16_t* m2s) {
 }
 
 void motor_pwm_pulse(HAL_TIM_ActiveChannel channel) {
+  uint32_t tmp;
+  
   switch (channel) {
     case HAL_TIM_ACTIVE_CHANNEL_1:
       if (m1pwm>0 && m1pwm<1000) {
-        MOTOR_PORT->BRR = M1P_Pin | M1N_Pin;
+        tmp = M1P_Pin | M1N_Pin;
         if (m2pwm == m1pwm)
-          MOTOR_PORT->BRR = M2P_Pin | M2N_Pin;
+          tmp |= M2P_Pin | M2N_Pin;
+        MOTOR_PORT->BRR = tmp;
       }
       break;
 

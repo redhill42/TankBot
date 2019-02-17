@@ -60,7 +60,7 @@ static const int16_t grab_left[][6] = {
   {120, -1, 90, 90,  90,  90}, // 2: stretch
   { -1, -1, -1, -1,  -1, 180}, // 3: rotate shoulder
   { -1, -1, -1, -1,   0,  -1}, // 4: hold up with shoulder
-  { -1, -1, -1, 10,  -1,  -1}, // 5: hold up with elbow
+  { -1, -1, -1, 20,  -1,  -1}, // 5: hold up with elbow
   { -1, -1, -1, 45,  36,  -1}, // 6: lift up shoulder
   { -1, -1, -1, -1,  -1,  90}, // 7: rotate shoulder forward
   { 90, 90, 50,  0,  60,  96}  // 8: reset all
@@ -72,7 +72,7 @@ static const int16_t grab_right[][6] = {
   {120, -1, 90, 90,  90, 90}, // 2: stretch
   { -1, -1, -1, -1,  -1,  0}, // 3: rotate shoulder
   { -1, -1, -1, -1,   0, -1}, // 4: hold up with shoulder
-  { -1, -1, -1, 10,  -1, -1}, // 5: hold up with elbow
+  { -1, -1, -1, 20,  -1, -1}, // 5: hold up with elbow
   { -1, -1, -1, 45,  36, -1}, // 6: lift up shoulder
   { -1, -1, -1, -1,  -1, 90}, // 7: rotate shoulder forward
   { 90, 90, 50,  0,  60, 96}  // 8: reset all

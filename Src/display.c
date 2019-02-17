@@ -97,6 +97,9 @@ static const Message_t* post_message;
 static const Message_t* current_message;
 static uint8_t next_message_id;
 
+/* Special address to indicate a clear_message command was issued */
+#define CLEAR_MESSAGE ((const Message_t*)0xFFFFFFFF)
+
 static const char* text;
 static int16_t xpos, ypos;
 static int8_t  xdir, ydir;
@@ -159,7 +162,7 @@ bool clear_message(uint8_t id) {
   bool retval = false;
   if (osMutexWait(display_mutexHandle, 500) == osOK) {
     if (current_message!=NULL && current_message->id==id) {
-      current_message = NULL;
+      post_message = CLEAR_MESSAGE;
       retval = true;
     }
     osMutexRelease(display_mutexHandle);
@@ -199,7 +202,7 @@ static BotState get_motor_state(void) {
 }
 
 void display_task(void const* args) {
-  BotState state;
+  BotState state = UNKNOWN;
   const Message_t* message = NULL;
   
   // stop display when display time elapsed
@@ -211,6 +214,11 @@ void display_task(void const* args) {
   if (osMutexWait(display_mutexHandle, 0) == osOK) {
     message = post_message;
     post_message = NULL;
+    if (message == CLEAR_MESSAGE) {
+      message = NULL;
+      current_message = NULL;
+      current_state = UNKNOWN;
+    }
     osMutexRelease(display_mutexHandle);
   }
   
@@ -218,7 +226,7 @@ void display_task(void const* args) {
   if (message != NULL) {
     state = NEW_MESSAGE;
   } else if (current_state == MESSAGE) {
-    state = current_message!=NULL ? MESSAGE : UNKNOWN;
+    state = MESSAGE;
   } else if (servo_is_recording()) {
     update_servo_recording_state();
     current_state = UNKNOWN;
@@ -226,7 +234,7 @@ void display_task(void const* args) {
   } else {
     state = get_motor_state();
   }
-
+  
   if (state==IDLE && battery_low()) {
     state = BATTERY_LOW;
   }
