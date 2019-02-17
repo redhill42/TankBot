@@ -188,6 +188,58 @@ static void control_servo(uint16_t key) {
     servo_add(SERVO_PAW, SERVO_DELTA);
 }
 
+/* 使用抛物线函数逼近正弦函数，最大误差0.1% */
+static int fast_sin(int l, int x) {
+  int y;
+  
+  // always wrap input angle to -180..180
+  while (x < -180)
+    x += 360;
+  while (x > 180)
+    x -= 360;
+  
+  if (x < 0) {
+    y = l*x*(180+x)/8100;
+    return (78*y - 22*y*y/l)/100;
+  } else {
+    y = l*x*(180-x)/8100;
+    return (78*y + 22*y*y/l)/100;
+  }
+}
+
+static int fast_cos(int l, int x) {
+  return fast_sin(l, x+90);
+}
+
+#define BASE_LENGTH       70
+#define SAFE_DISTANCE     100
+#define MIN_DISTANCE      150
+
+#define UPPERARM_LENGTH   110
+#define FOREARM_LENGTH    90
+#define PAW_LENGTH        180
+#define MIN_PAW_LENGTH    45
+
+static int compute_arm_extent(void) {
+  int upperarm_degree = (int)servo_get(SERVO_SHOULDER_UD);
+  int forearm_degree  = upperarm_degree - 90 + (int)servo_get(SERVO_ELBOW_UD);
+  int paw_degree      = forearm_degree + 90 - (int)servo_get(SERVO_WRIST_UD);
+  
+  int upperarm_extent = fast_cos(UPPERARM_LENGTH, upperarm_degree);
+  int forearm_extent  = fast_cos(FOREARM_LENGTH, forearm_degree);
+  int paw_extent      = fast_cos(PAW_LENGTH, paw_degree);
+
+  if (paw_extent < MIN_PAW_LENGTH)
+    paw_extent = MIN_PAW_LENGTH;
+  
+  int extent = upperarm_extent + forearm_extent + paw_extent - BASE_LENGTH;
+  if (extent > 0)
+    extent += SAFE_DISTANCE;
+  else
+    extent = MIN_DISTANCE;
+  return extent;
+}
+
 static bool check_collision(bool forward) {
   static bool impact = false;
   
@@ -196,7 +248,9 @@ static bool check_collision(bool forward) {
     return false;
   }
   
-  if (forward && (distance<300 || (impact && distance<310))) {
+  int extent = compute_arm_extent();
+  
+  if (forward && (distance<extent || (impact && distance<extent+10))) {
     if (!impact) {
       impact = true;
       display_message(&stop_message);
