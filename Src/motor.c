@@ -69,8 +69,11 @@ bool motor_control(int16_t m1s, int16_t m2s) {
   m1pwm = m1p;
   m2pwm = m2p;
   
-  __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_1, m1p);
-  __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_2, m2p);
+  // Set PWM pulse width. 
+  // The configured PWM frequency is 100Hz, that is, the period is 10ms,
+  // so the pulse width should multply by 10.
+  __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_1, m1p*10);
+  __HAL_TIM_SET_COMPARE(MOTOR_TIM, TIM_CHANNEL_2, m2p*10);
   
   if (m1p==0 || m1p==1000) {
     __HAL_TIM_DISABLE_IT(MOTOR_TIM, TIM_IT_CC1);
