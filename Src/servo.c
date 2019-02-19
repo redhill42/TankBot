@@ -10,7 +10,7 @@
 #define SERVO_DELAY       20
 
 /* Convert degree to PWM duty cycle */
-#define D2P(d)  ((d)*2000/180+500)
+#define D2P(d)  ((d)*2000/1800+500)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Servo GPIO Pins
@@ -37,7 +37,7 @@ static uint32_t const servo_pins[] = {
 // Servo PWM duty cycles
 
 static const uint16_t servo_pwm_init[] = {
-  D2P(90), D2P(90), D2P(50), D2P(0), D2P(60), D2P(96)
+  D2P(900), D2P(900), D2P(500), D2P(0), D2P(600), D2P(850)
 };
 
 static __IO uint16_t servo_pwm[SERVO_CNT];
@@ -106,8 +106,8 @@ bool servo_set(uint8_t id, int angle) {
 
   if (angle < 0)
     angle = 0;
-  if (angle > 180)
-    angle = 180;
+  if (angle > 1800)
+    angle = 1800;
 
   servo_pwm_set[id-1] = (uint16_t)D2P(angle);
   return true;
@@ -121,7 +121,7 @@ int servo_get(uint8_t id) {
   if (id==0 || id>SERVO_CNT)
     return 0;
   
-  int angle = ((int)servo_pwm[id-1]-500)*180;
+  int angle = ((int)servo_pwm[id-1]-500)*1800;
   if ((angle%2000) > 1000)
     return angle/2000+1;
   else
@@ -311,7 +311,7 @@ static void do_play_sequence(void) {
   if (servo_sequence != NULL) {
     for (int i=0; i<SERVO_CNT; i++) {
       int16_t angle = servo_sequence[servo_sequence_step][i];
-      if (angle>=0 && angle<=180)
+      if (angle>=0 && angle<=1800)
         servo_set(i+1, angle);
     }
     

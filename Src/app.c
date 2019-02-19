@@ -54,28 +54,43 @@ static enum KeyPressState check_key_press(uint16_t key, uint16_t mask, struct Ke
   return KEY_PRESS_NONE;
 }
 
+static const int16_t grab[][6] = {
+/*   1     2     3     4     5     6   */
+ { 900,  900, 1450,    0, 1440,  850}, // standby
+ { 200,   -1,  200,  200,    0,   -1}, // arm down
+ {1200,   -1,  450,  500,   -1,   -1}, // grab
+ {  -1,   -1,  650,  500,  900,   -1}, // lift up half way
+ {  -1,   -1, 1400,    0, 1400,   -1}, // lift up
+ {  -1,   -1,   -1,   -1,   -1,    0}, // rotate
+ {  -1,   -1,  450,  500,    0,   -1}, // arm down
+ {  -1,   -1,   -1,   -1,   -1,   -1}, // delay
+ {   0,   -1,   -1,   -1,   -1,   -1}, // drop
+ {  -1,   -1,  600,  500,  900,   -1}, // lift up
+ { 900,  900, 1450,    0, 1440,  850}  // reset all
+};
+
 static const int16_t grab_left[][6] = {
-/*   1   2   3   4    5    6   */
-  { 90, 90,  0,  0, 144,  90}, // 1: standby
-  {120, -1, 90, 90,  90,  90}, // 2: stretch
-  { -1, -1, -1, -1,  -1, 180}, // 3: rotate shoulder
-  { -1, -1, -1, -1,   0,  -1}, // 4: hold up with shoulder
-  { -1, -1, -1, 20,  -1,  -1}, // 5: hold up with elbow
-  { -1, -1, -1, 45,  36,  -1}, // 6: lift up shoulder
-  { -1, -1, -1, -1,  -1,  90}, // 7: rotate shoulder forward
-  { 90, 90, 50,  0,  60,  96}  // 8: reset all
+/*    1    2    3    4     5     6   */
+  { 900, 900,   0,   0, 1440,  850}, // 1: standby
+  {1200,  -1, 900, 900,  900,  850}, // 2: stretch
+  {  -1,  -1,  -1,  -1,   -1, 1800}, // 3: rotate shoulder
+  {  -1,  -1,  -1,  -1,    0,   -1}, // 4: hold up with shoulder
+  {  -1,  -1,  -1, 200,   -1,   -1}, // 5: hold up with elbow
+  {  -1,  -1,  -1, 450,  360,   -1}, // 6: lift up shoulder
+  {  -1,  -1,  -1,  -1,   -1,  850}, // 7: rotate shoulder forward
+  { 900, 900, 500,   0,  600,  850}  // 8: reset all
 };
 
 static const int16_t grab_right[][6] = {
-/*   1   2   3   4    5   6   */
-  { 90, 90,  0,  0, 144, 90}, // 1: standby
-  {120, -1, 90, 90,  90, 90}, // 2: stretch
-  { -1, -1, -1, -1,  -1,  0}, // 3: rotate shoulder
-  { -1, -1, -1, -1,   0, -1}, // 4: hold up with shoulder
-  { -1, -1, -1, 20,  -1, -1}, // 5: hold up with elbow
-  { -1, -1, -1, 45,  36, -1}, // 6: lift up shoulder
-  { -1, -1, -1, -1,  -1, 90}, // 7: rotate shoulder forward
-  { 90, 90, 50,  0,  60, 96}  // 8: reset all
+/*    1    2    3    4     5    6   */
+  { 900, 900,   0,   0, 1440, 850}, // 1: standby
+  {1200,  -1, 900, 900,  900, 850}, // 2: stretch
+  {  -1,  -1,  -1,  -1,   -1,   0}, // 3: rotate shoulder
+  {  -1,  -1,  -1,  -1,    0,  -1}, // 4: hold up with shoulder
+  {  -1,  -1,  -1, 200,   -1,  -1}, // 5: hold up with elbow
+  {  -1,  -1,  -1, 450,  360,  -1}, // 6: lift up shoulder
+  {  -1,  -1,  -1,  -1,   -1, 850}, // 7: rotate shoulder forward
+  { 900, 900, 500,   0,  600, 850}  // 8: reset all
 };
 
 // Tilt states:
@@ -153,7 +168,7 @@ static bool tilt_detect(void) {
   return false;
 }
 
-#define SERVO_DELTA 5
+#define SERVO_DELTA 50
 
 static void do_servo_control(uint16_t key) {
   if (key == 0) {
@@ -193,22 +208,22 @@ static int fast_sin(int l, int x) {
   int y;
   
   // always wrap input angle to -180..180
-  while (x < -180)
-    x += 360;
-  while (x > 180)
-    x -= 360;
+  while (x < -1800)
+    x += 3600;
+  while (x > 1800)
+    x -= 3600;
   
   if (x < 0) {
-    y = l*x*(180+x)/8100;
+    y = l*x*(1800+x)/810000;
     return (78*y - 22*y*y/l)/100;
   } else {
-    y = l*x*(180-x)/8100;
+    y = l*x*(1800-x)/810000;
     return (78*y + 22*y*y/l)/100;
   }
 }
 
 static int fast_cos(int l, int x) {
-  return fast_sin(l, x+90);
+  return fast_sin(l, x+900);
 }
 
 #define BASE_LENGTH       70
@@ -393,14 +408,21 @@ void app_main(const void* args) {
       default:
         break;
     }
+    
+    switch (check_key_press(key, PSB_R3, &r3)) {
+    case KEY_PRESS_LONG:
+      servo_play_sequence(grab, sizeof(grab)/sizeof(*grab), 1000);
+      break;
+    case KEY_PRESS_SHORT:
+      special_action();
+      break;
+    default:
+      break;
+    }
 
     do_servo_control(key);
     do_motor_control(lx, ly);
     do_beep_control((key&PSB_L3) != 0);
-    
-    if (check_key_press(key, PSB_R3, &r3) != KEY_PRESS_NONE) {
-      special_action();
-    }
   }
 }
 
