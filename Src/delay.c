@@ -36,7 +36,7 @@ uint32_t SW_Stop(stopwatch_t* sw) {
   uint32_t tickstop  = SysTick->VAL;
   uint32_t ticks;
   
-  if (tickstart > tickstop) {
+  if (tickstart >= tickstop) {
     ticks = tickstart - tickstop;
   } else {
     ticks = SysTick->LOAD - tickstop + tickstart;

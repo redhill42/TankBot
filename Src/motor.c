@@ -52,14 +52,6 @@ bool motor_control(int16_t m1s, int16_t m2s) {
     m2p = 0;
   }
 
-  // error correction
-  if (m1s == m2s) {
-    if (m2s == 1000)
-      m2p = 980;
-    else if (m1s == -1000)
-      m1p = 985;
-  }
-  
   // update PWM data
   portENTER_CRITICAL();
   

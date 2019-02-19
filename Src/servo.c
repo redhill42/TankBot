@@ -10,7 +10,10 @@
 #define SERVO_DELAY       20
 
 /* Convert degree to PWM duty cycle */
-#define D2P(d)  ((d)*2000/1800+500)
+#define DEG2PWM(d)  (((d)*2000+900)/1800+500)
+
+/* Convert PWM duty cycle to degree */
+#define PWM2DEG(p)  ((((p)-500)*1800+1000)/2000)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Servo GPIO Pins
@@ -37,7 +40,7 @@ static uint32_t const servo_pins[] = {
 // Servo PWM duty cycles
 
 static const uint16_t servo_pwm_init[] = {
-  D2P(900), D2P(900), D2P(500), D2P(0), D2P(600), D2P(850)
+  DEG2PWM(900), DEG2PWM(900), DEG2PWM(500), DEG2PWM(0), DEG2PWM(600), DEG2PWM(850)
 };
 
 static __IO uint16_t servo_pwm[SERVO_CNT];
@@ -109,7 +112,7 @@ bool servo_set(uint8_t id, int angle) {
   if (angle > 1800)
     angle = 1800;
 
-  servo_pwm_set[id-1] = (uint16_t)D2P(angle);
+  servo_pwm_set[id-1] = (uint16_t)DEG2PWM(angle);
   return true;
 }
 
@@ -120,58 +123,72 @@ bool servo_add(uint8_t id, int delta) {
 int servo_get(uint8_t id) {
   if (id==0 || id>SERVO_CNT)
     return 0;
-  
-  int angle = ((int)servo_pwm[id-1]-500)*1800;
-  if ((angle%2000) > 1000)
-    return angle/2000+1;
-  else
-    return angle/2000;
+  return PWM2DEG((int)servo_pwm[id-1]);
 }
 
 bool servo_in_action(void) {
   return servo_action;
 }
 
+static void update_pwm_data(void) {
+  int diff, steps;
+
+  servo_action = false;
+
+  // compute maximum angle delta
+  diff = 0;
+  for (int i=0; i<SERVO_CNT; i++) {
+    int d = servo_pwm_set[i] - servo_pwm[i];
+    if (d < 0)
+      d = -d;
+    if (d > diff)
+      diff = d;
+  }
+  if (diff == 0) {
+    // no servo need to update
+    return;
+  }
+  
+  // compute angle change steps to smoothly update all servos
+  steps = (diff+SERVO_PWM_INC-1)/SERVO_PWM_INC;
+
+  // update individual servo pwm data
+  for (int i=0; i<SERVO_CNT; i++) {
+    int cur = servo_pwm[i];
+    int set = servo_pwm_set[i];
+    if (cur != set) {
+      int new = cur + (set-cur+steps-1)/steps;
+      if (cur<set ? new>set : new<set)
+        new = set;
+      servo_pwm[i] = new;
+      servo_action = true;
+    }
+  }
+}
+
 void servo_pwm_pulse(void) {
   uint8_t id = servo_pulse_id++;
-  uint16_t cur, set;
 
-  if (id == 0) {
-    servo_action = false;
-  } else {
+  if (id > 0) {
     // lower previous PWM pulse
     servo_ports[id-1]->ODR &= ~servo_pins[id-1];
     
+    // start next 50Hz period
     if (id == SERVO_CNT) {
-      // start a new 50Hz period
       SERVO_TIM->Instance->ARR = 20000 - servo_pulse_time;
       servo_pulse_id = 0;
       servo_pulse_time = 0;
+      update_pwm_data();
       return;
     }
   }
   
   // raising current PWM pulse
   servo_ports[id]->ODR |= servo_pins[id];
-
-  // update PWM duty cycle
-  cur = servo_pwm[id];
-  set = servo_pwm_set[id];
-  if (cur != set) {
-    if (cur < set) {
-      if ((cur+=SERVO_PWM_INC) > set)
-        cur = set;
-    } else {
-      if ((cur-=SERVO_PWM_INC) < set)
-        cur = set;
-    }
-    servo_pwm[id] = cur;
-    servo_action = true;
-  }
-  
+ 
   // trigger next PWM pulse with appropriate duty cycle
-  servo_pulse_time += cur;
-  SERVO_TIM->Instance->ARR = cur;
+  servo_pulse_time += servo_pwm[id];
+  SERVO_TIM->Instance->ARR = servo_pwm[id];
 }
 
 void servo_toggle_recording(void) {

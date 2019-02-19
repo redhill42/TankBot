@@ -58,14 +58,13 @@ static const int16_t grab[][6] = {
 /*   1     2     3     4     5     6   */
  { 900,  900, 1450,    0, 1440,  850}, // standby
  { 200,   -1,  200,  200,    0,   -1}, // arm down
- {1200,   -1,  450,  500,   -1,   -1}, // grab
- {  -1,   -1,  650,  500,  900,   -1}, // lift up half way
+ {1200,   -1,  450,  350,   -1,   -1}, // grab
  {  -1,   -1, 1400,    0, 1400,   -1}, // lift up
  {  -1,   -1,   -1,   -1,   -1,    0}, // rotate
- {  -1,   -1,  450,  500,    0,   -1}, // arm down
+ {  -1,   -1,  450,  350,    0,   -1}, // arm down
  {  -1,   -1,   -1,   -1,   -1,   -1}, // delay
  {   0,   -1,   -1,   -1,   -1,   -1}, // drop
- {  -1,   -1,  600,  500,  900,   -1}, // lift up
+ {  -1,   -1, 1450,  500,  900,   -1}, // lift up
  { 900,  900, 1450,    0, 1440,  850}  // reset all
 };
 
@@ -258,28 +257,31 @@ static int compute_arm_extent(void) {
 static bool check_collision(bool forward) {
   static bool impact = false;
   
-  uint32_t distance = get_distance();
-  if (distance == INVALID_DISTANCE) {
-    return false;
+  if (forward) {
+    uint32_t distance = get_distance();
+    int extent = compute_arm_extent();
+
+    if (distance == INVALID_DISTANCE) {
+      return impact; // ignore invalid distance value
+    }
+    
+    if (distance<extent || (impact && distance<extent+20)) {
+      if (!impact) {
+        impact = true;
+        display_message(&stop_message);
+        beep_start("=6:50/1CR@", true);
+      }
+      return true;
+    } // else fallthrough
   }
   
-  int extent = compute_arm_extent();
-  
-  if (forward && (distance<extent || (impact && distance<extent+10))) {
-    if (!impact) {
-      impact = true;
-      display_message(&stop_message);
-      beep_start("=6:50/1CR@", true);
-    }
-  } else {
-    if (impact) {
-      impact = false;
-      clear_message(stop_message.id);
-      beep_stop();
-    }
+  if (impact) {
+    impact = false;
+    clear_message(stop_message.id);
+    beep_stop();
   }
   
-  return impact;
+  return false;
 }
 
 static void do_motor_control(uint8_t lx, uint8_t ly) {
