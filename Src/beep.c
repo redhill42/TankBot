@@ -185,8 +185,9 @@ static bool decode(const char** pp, uint16_t* frequency, uint32_t* duration) {
     if (*p>='a' && *p<='g') {
       note = *p++ - 'a';
     } else if (*p>='A' && *p<='G') {
+      octave++;
       note = *p++ - 'A';
-    } else if (*p=='r' || *p=='R') {
+    } else if (*p=='$') {
       p++;
       note = 7;
     } else {

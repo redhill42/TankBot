@@ -269,7 +269,7 @@ static bool check_collision(bool forward) {
       if (!impact) {
         impact = true;
         display_message(&stop_message);
-        beep_start("=6:50/1CR@", true);
+        beep_start("=6:50/1c$@", true);
       }
       return true;
     } // else fallthrough
@@ -347,7 +347,7 @@ static void do_beep_control(bool on) {
   if (on) {
     if (!beep) {
       beep = 1;
-      beep_start("=4A0", false);
+      beep_start("=4a0", false);
     }
   } else {
     if (beep) {
@@ -387,12 +387,12 @@ void app_main(const void* args) {
     
     switch (check_key_press(key, PSB_SELECT, &select)) {
       case KEY_PRESS_LONG:
-        beep_start("=5:60/1A", false);
+        beep_start("=5:60/1a", false);
         servo_toggle_recording();
         break;
       case KEY_PRESS_SHORT:
         if (servo_is_recording()) {
-          beep_start("=5:60/1A", false);
+          beep_start("=5:60/1a", false);
           servo_record();
         }
         break;
@@ -429,16 +429,41 @@ void app_main(const void* args) {
 }
 
 static void special_action(void) {
-  beep_start(
+  static const char* const musics[] = {
+    /* imperial march */
     "=4:1500/3"
-    "AAAF6.C+12.AF6.C+12.A2.R12"
-    "+EEEF6.C12G-#F-6.C12.A-2.R12-"
-    "+AA-6.A-12AG#6G6F#12F12F#6R6-"
-    "+A-#6D#D6C#6C12B-12C6R6-"
-    "F12G#F6.A12C+A6.C+12E+2.R12"
-    "+AA-6.A-12AG#6G6F#12F12F#6R6-"
-    "+A-#6D#D6C#6C12B-12C6R6-"
-    "F6G#F6.C+12AF6.C+12A2.",
-    true
-  );
+    "aaaf6.C12.af6.C12.a2.$12"
+    "EEEF6.C12g#f6.C12.a2.$12"
+    "Aa6.a12AG#6G6F#12F12F#6$6"
+    "a#6D#D6C#6C12b12C6$6"
+    "f12g#f6.a12Ca6.C12E2.$12"
+    "Aa6.a12AG#6G6F#12F12F#6$6"
+    "a#6D#D6C#6C12b12C6$6"
+    "f6g#f6.C12af6.C12a2.",
+
+    /* pirates of caribbean */
+    "=4:500/4"
+    "ega2a$abC2C$CDb2b$aga2.$"
+    "ega2a$abC2C$CDb2b$aga2.$"
+    "ega2a$aCD2D$DEF2F$EDEa2$"
+    "abC2C$DEa2$aCb2b$Cab2.$2."
+    "a2a"
+    "abC2C$CDb2b$aga2.$"
+    "ega2a$abC2C$CDb2b$aga2.$"
+    "ega2a$aCD2D$DEF2F$EDEa2$"
+    "abC2C$DEa2$aCb2b$Cab2.$2."
+    "E2$$2.F2$$2.EE$GED$$2.D2$$2.C2$$2.bC$b$a1"
+    "E2$$2.F2$$2.EE$G$ED$$2.D2$$2.C2$$2.bC$b$a1",
+    
+    /* tetris */
+    "=4:444/2"
+    "E1bCDE4D4Cba1aCE1DCb1b4b4CD1E1C1a1a1a1D1DFA1GF"
+    "E1ECE1DCb1b4b4CD1E1C1a1a1a1E1bCDE4D4Cba1aCE1DC"
+    "b1bCD1E1C1a1a1D1DFAGFE1ECE1DCb1bCD1E1C1a1a1a1",
+  };
+  
+  static int idx = 0;
+  
+  beep_start(musics[idx], true);
+  idx = (idx+1)%(sizeof(musics)/sizeof(*musics));
 }
