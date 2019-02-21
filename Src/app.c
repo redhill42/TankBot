@@ -57,7 +57,7 @@ static enum KeyPressState check_key_press(uint16_t key, uint16_t mask, struct Ke
 
 static const int16_t grab[][6] = {
 /*   1     2     3     4     5     6   */
- { 900,  900, 1450,    0, 1440,  850}, // standby
+ { 900,  900, 1450,    0, 1440,  900}, // standby
  { 200,   -1,  200,  200,    0,   -1}, // arm down
  {1200,   -1,  450,  350,   -1,   -1}, // grab
  {  -1,   -1, 1400,    0, 1400,   -1}, // lift up
@@ -66,31 +66,31 @@ static const int16_t grab[][6] = {
  {  -1,   -1,   -1,   -1,   -1,   -1}, // delay
  {   0,   -1,   -1,   -1,   -1,   -1}, // drop
  {  -1,   -1, 1450,  500,  900,   -1}, // lift up
- { 900,  900, 1450,    0, 1440,  850}  // reset all
+ { 900,  900, 1450,    0, 1440,  900}  // reset all
 };
 
 static const int16_t grab_left[][6] = {
 /*    1    2    3    4     5     6   */
-  { 900, 900,   0,   0, 1440,  850}, // 1: standby
-  {1200,  -1, 900, 900,  900,  850}, // 2: stretch
+  { 900, 900,   0,   0, 1440,  900}, // 1: standby
+  {1200,  -1, 900, 900,  900,  900}, // 2: stretch
   {  -1,  -1,  -1,  -1,   -1, 1800}, // 3: rotate shoulder
   {  -1,  -1,  -1,  -1,    0,   -1}, // 4: hold up with shoulder
   {  -1,  -1,  -1, 200,   -1,   -1}, // 5: hold up with elbow
   {  -1,  -1,  -1, 450,  360,   -1}, // 6: lift up shoulder
-  {  -1,  -1,  -1,  -1,   -1,  850}, // 7: rotate shoulder forward
-  { 900, 900, 500,   0,  600,  850}  // 8: reset all
+  {  -1,  -1,  -1,  -1,   -1,  900}, // 7: rotate shoulder forward
+  { 900, 900, 500,   0,  600,  900}  // 8: reset all
 };
 
 static const int16_t grab_right[][6] = {
 /*    1    2    3    4     5    6   */
-  { 900, 900,   0,   0, 1440, 850}, // 1: standby
-  {1200,  -1, 900, 900,  900, 850}, // 2: stretch
+  { 900, 900,   0,   0, 1440, 900}, // 1: standby
+  {1200,  -1, 900, 900,  900, 900}, // 2: stretch
   {  -1,  -1,  -1,  -1,   -1,   0}, // 3: rotate shoulder
   {  -1,  -1,  -1,  -1,    0,  -1}, // 4: hold up with shoulder
   {  -1,  -1,  -1, 200,   -1,  -1}, // 5: hold up with elbow
   {  -1,  -1,  -1, 450,  360,  -1}, // 6: lift up shoulder
-  {  -1,  -1,  -1,  -1,   -1, 850}, // 7: rotate shoulder forward
-  { 900, 900, 500,   0,  600, 850}  // 8: reset all
+  {  -1,  -1,  -1,  -1,   -1, 900}, // 7: rotate shoulder forward
+  { 900, 900, 500,   0,  600, 900}  // 8: reset all
 };
 
 // Tilt states:

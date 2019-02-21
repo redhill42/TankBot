@@ -3,14 +3,14 @@
 #include "ps2controller.h"
 #include "delay.h"
 
-#define CS_H    PS2_CS_GPIO_Port->BSRR=PS2_CS_Pin
-#define CS_L    PS2_CS_GPIO_Port->BSRR=PS2_CS_Pin<<16
+#define CS_H    (PS2_CS_GPIO_Port->ODR |= PS2_CS_Pin)
+#define CS_L    (PS2_CS_GPIO_Port->ODR &= ~PS2_CS_Pin)
 
-#define CMD_H   PS2_CMD_GPIO_Port->BSRR=PS2_CMD_Pin
-#define CMD_L   PS2_CMD_GPIO_Port->BSRR=PS2_CMD_Pin<<16
+#define CMD_H   (PS2_CMD_GPIO_Port->ODR |= PS2_CMD_Pin)
+#define CMD_L   (PS2_CMD_GPIO_Port->ODR &= ~PS2_CMD_Pin)
 
-#define CLK_H   PS2_CLK_GPIO_Port->BSRR=PS2_CLK_Pin
-#define CLK_L   PS2_CLK_GPIO_Port->BSRR=PS2_CLK_Pin<<16
+#define CLK_H   (PS2_CLK_GPIO_Port->ODR |= PS2_CLK_Pin)
+#define CLK_L   (PS2_CLK_GPIO_Port->ODR &= ~PS2_CLK_Pin)
 
 #define DATA    ((PS2_DATA_GPIO_Port->IDR&PS2_DATA_Pin)!=(uint32_t)GPIO_PIN_RESET)
 

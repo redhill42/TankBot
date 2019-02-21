@@ -65,6 +65,8 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 
+I2C_HandleTypeDef hi2c2;
+
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
@@ -118,6 +120,7 @@ static void MX_TIM3_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_I2C2_Init(void);
 void app_main(void const * argument);
 extern void servo_daemon(void const * argument);
 extern void beep_daemon(void const * argument);
@@ -168,6 +171,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   MX_TIM4_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   
   /* USER CODE END 2 */
@@ -342,6 +346,40 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief I2C2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C2_Init(void)
+{
+
+  /* USER CODE BEGIN I2C2_Init 0 */
+
+  /* USER CODE END I2C2_Init 0 */
+
+  /* USER CODE BEGIN I2C2_Init 1 */
+
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.ClockSpeed = 400000;
+  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C2_Init 2 */
+
+  /* USER CODE END I2C2_Init 2 */
 
 }
 
@@ -561,13 +599,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, BEEP_Pin|I2C_SDA_Pin|I2C_SCL_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, BEEP_Pin|PS2_CMD_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, M1N_Pin|M1P_Pin|M2N_Pin|M2P_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(PS2_CMD_GPIO_Port, PS2_CMD_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
@@ -575,25 +610,18 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PS2_CS_Pin|PS2_CLK_Pin|LED_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pins : BEEP_Pin PS2_CMD_Pin */
-  GPIO_InitStruct.Pin = BEEP_Pin|PS2_CMD_Pin;
+  /*Configure GPIO pin : BEEP_Pin */
+  GPIO_InitStruct.Pin = BEEP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(BEEP_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : E1_Pin SW_Pin E6_Pin SERVO1_Pin 
-                           SERVO2_Pin SERVO3_Pin */
-  GPIO_InitStruct.Pin = E1_Pin|SW_Pin|E6_Pin|SERVO1_Pin 
-                          |SERVO2_Pin|SERVO3_Pin;
+  /*Configure GPIO pins : E1_Pin SW_Pin E2_Pin E6_Pin 
+                           E3_Pin SERVO1_Pin SERVO2_Pin SERVO3_Pin */
+  GPIO_InitStruct.Pin = E1_Pin|SW_Pin|E2_Pin|E6_Pin 
+                          |E3_Pin|SERVO1_Pin|SERVO2_Pin|SERVO3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : I2C_SDA_Pin I2C_SCL_Pin */
-  GPIO_InitStruct.Pin = I2C_SDA_Pin|I2C_SCL_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : M1N_Pin M1P_Pin M2N_Pin M2P_Pin */
@@ -603,14 +631,21 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PS2_CMD_Pin */
+  GPIO_InitStruct.Pin = PS2_CMD_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(PS2_CMD_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : PS2_DATA_Pin */
   GPIO_InitStruct.Pin = PS2_DATA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(PS2_DATA_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : TRIG_Pin PS2_CS_Pin PS2_CLK_Pin LED_Pin */
-  GPIO_InitStruct.Pin = TRIG_Pin|PS2_CS_Pin|PS2_CLK_Pin|LED_Pin;
+  /*Configure GPIO pins : TRIG_Pin PS2_CS_Pin LED_Pin */
+  GPIO_InitStruct.Pin = TRIG_Pin|PS2_CS_Pin|LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -622,15 +657,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ECHO_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : E4_Pin E5_Pin SERVO5_Pin */
-  GPIO_InitStruct.Pin = E4_Pin|E5_Pin|SERVO5_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  /*Configure GPIO pin : PS2_CLK_Pin */
+  GPIO_InitStruct.Pin = PS2_CLK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(PS2_CLK_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SERVO4_Pin */
   GPIO_InitStruct.Pin = SERVO4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   HAL_GPIO_Init(SERVO4_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SERVO5_Pin */
+  GPIO_InitStruct.Pin = SERVO5_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  HAL_GPIO_Init(SERVO5_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);

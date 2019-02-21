@@ -16,7 +16,7 @@
 // Servo rotate degrees
 
 static const uint16_t servo_deg_init[] = {
-  900, 900, 500, 0, 600, 850
+  900, 900, 500, 0, 600, 900
 };
 
 static __IO uint16_t servo_deg[SERVO_CNT];
@@ -71,33 +71,26 @@ static void pca9685_write_reg(uint8_t address, uint8_t value) {
   I2C_WriteMem(PCA9685_BASE_ADDRESS, address, 1, &value, 1);
 }
 
-static uint8_t pca9685_read_reg(uint8_t address) {
-  uint8_t value = 0;
-  I2C_ReadMem(PCA9685_BASE_ADDRESS, address, 1, &value, 1);
-  return value;
-}
-
 static void pca9685_init(void) {
-  pca9685_write_reg(PCA9685_MODE1_REG, PCA9685_MODE_RESTART | PCA9685_MODE_AUTOINC);
-  pca9685_write_reg(PCA9685_MODE2_REG, PCA9685_MODE_OUTPUT_TPOLE);
+  // The PRE_SCALE register can only be set when the SLEEP bit of MODE1 register is set to logic 1.
+  pca9685_write_reg(PCA9685_MODE1_REG, PCA9685_MODE_SLEEP);
   
-  // set PWM frequency in 50Hz
-  uint8_t mode1 = pca9685_read_reg(PCA9685_MODE1_REG);
-  mode1 &= ~PCA9685_MODE_RESTART;
-  mode1 |= PCA9685_MODE_SLEEP;
-  pca9685_write_reg(PCA9685_MODE1_REG, mode1);
-  
+  // Set PWM frequency in 50Hz
   pca9685_write_reg(PCA9685_PRESCALE_REG, SERVO_FREQ_PRESCALE);
   
-  mode1 |= PCA9685_MODE_RESTART;
-  mode1 &= ~PCA9685_MODE_SLEEP;
-  pca9685_write_reg(PCA9685_MODE1_REG, mode1);
-  
+  // Restart PCA9685
+  pca9685_write_reg(PCA9685_MODE1_REG, PCA9685_MODE_RESTART | PCA9685_MODE_AUTOINC);
+  pca9685_write_reg(PCA9685_MODE2_REG, PCA9685_MODE_OUTPUT_TPOLE);
+
+  // It takes 500us max for the oscillator to be up and running once SLEEP bit has been set to logic 0.
   HAL_Delay_us(500);
 }
 
-static void pca9685_set_pwm(uint8_t id, uint16_t pwm) {
-  int width = (((int)pwm*4096+10000)/20000);
+#define PWM_MIN 102 /* 2.5% duty cycle, 500us in 50Hz */
+#define PWM_MAX 512 /* 12.5% duty cycle, 2500us in 50Hz */
+
+static void pca9685_set_pwm(uint8_t id, uint16_t angle) {
+  int width = PWM_MIN + ((int)angle*(PWM_MAX-PWM_MIN)+900)/1800;
   int begin = id*4096/SERVO_CNT; // distribute pulse over entire period to balance load
   int end   = begin + width;
   
@@ -216,7 +209,7 @@ void servo_init(void) {
 #if PCA9685
   pca9685_init();
   for (int i=0; i<SERVO_CNT; i++) {
-    pca9685_set_pwm(i, DEG2PWM(servo_deg[i]));
+    pca9685_set_pwm(i, servo_deg[i]);
   }
 #else
   HAL_TIM_Base_Start_IT(SERVO_TIM);
@@ -289,7 +282,7 @@ static void update_servo_data(void) {
       servo_deg[i] = new;
       servo_action = true;
 #if PCA9685
-      pca9685_set_pwm(i, DEG2PWM(new));
+      pca9685_set_pwm(i, new);
 #endif
     }
   }

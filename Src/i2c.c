@@ -1,6 +1,8 @@
 #include "i2c.h"
 #include "delay.h"
 
+#if SOFTWARE_I2C
+
 #define SDA_LOW()   (I2C_SDA_GPIO_Port->ODR &= ~I2C_SDA_Pin) // set SDA to low
 #define SDA_OPEN()  (I2C_SDA_GPIO_Port->ODR |= I2C_SDA_Pin)  // set SDA to open-drain
 #define SDA_READ()  (I2C_SDA_GPIO_Port->IDR &  I2C_SDA_Pin)  // read SDA
@@ -178,6 +180,33 @@ bool I2C_ReadMem(uint8_t dev_addr, uint16_t mem_addr, uint16_t mem_size, uint8_t
   END();
   return true;
 }
+
+
+#else
+
+extern I2C_HandleTypeDef hi2c2;
+
+bool I2C_Transmit(uint8_t dev_addr, uint8_t* data, uint16_t size) {
+  return HAL_I2C_Master_Transmit(&hi2c2, dev_addr, data, size, 200) == HAL_OK;
+}
+
+bool I2C_Receive(uint8_t dev_addr, uint8_t* data, uint16_t size) {
+  return HAL_I2C_Master_Receive(&hi2c2, dev_addr, data, size, 200) == HAL_OK;
+}
+
+bool I2C_WriteMem(uint8_t dev_addr, uint16_t mem_addr, uint16_t mem_size, uint8_t* data, uint16_t size) {
+  return HAL_I2C_Mem_Write(&hi2c2, dev_addr, mem_addr, 
+    mem_size==1 ? I2C_MEMADD_SIZE_8BIT : I2C_MEMADD_SIZE_16BIT,
+    data, size, 200) == HAL_OK;
+}
+
+bool I2C_ReadMem(uint8_t dev_addr, uint16_t mem_addr, uint16_t mem_size, uint8_t* data, uint16_t size) {
+  return HAL_I2C_Mem_Read(&hi2c2, dev_addr, mem_addr,
+    mem_size==1 ? I2C_MEMADD_SIZE_8BIT : I2C_MEMADD_SIZE_16BIT,
+    data, size, 200) == HAL_OK;
+}
+
+#endif
 
 bool I2C_Reset(void) {
   uint8_t reset = 0x06;
