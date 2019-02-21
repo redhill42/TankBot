@@ -6,17 +6,120 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Definitions
 
-#define SERVO_PWM_INC     20
+#define SERVO_DEG_INC     20
 #define SERVO_DELAY       20
 
 /* Convert degree to PWM duty cycle */
 #define DEG2PWM(d)  (((d)*2000+900)/1800+500)
 
-/* Convert PWM duty cycle to degree */
-#define PWM2DEG(p)  ((((p)-500)*1800+1000)/2000)
+///////////////////////////////////////////////////////////////////////////////
+// Servo rotate degrees
+
+static const uint16_t servo_deg_init[] = {
+  900, 900, 500, 0, 600, 850
+};
+
+static __IO uint16_t servo_deg[SERVO_CNT];
+static __IO uint16_t servo_deg_set[SERVO_CNT];
+
+static __IO bool servo_action; /* servo movement is in progress */
+
+static void update_servo_data(void);
+
+#if PCA9685
 
 ///////////////////////////////////////////////////////////////////////////////
-// Servo GPIO Pins
+// PCA9685 Driver
+
+#include "i2c.h"
+#include "delay.h"
+
+#define PCA9685_BASE_ADDRESS  0x80
+
+#define PCA9685_MODE1_REG     0x00
+#define PCA9685_MODE2_REG     0x01
+#define PCA9685_PWM_REG       0x06 // Start of PWM regs, 4B per reg, 2B on phase, 2B off phase, little-endian
+#define PCA9685_PRESCALE_REG  0xFE
+
+#define PCA9685_MODE_RESTART  0x80
+#define PCA9685_MODE_EXTCLK   0x40
+#define PCA9685_MODE_AUTOINC  0x20
+#define PCA9685_MODE_SLEEP    0x10
+#define PCA9685_MODE_SUBADR1  0x08
+#define PCA9685_MODE_SUBADR2  0x04
+#define PCA9685_MODE_SUBADR3  0x02
+#define PCA9685_MODE_ALLCALL  0x01
+
+#define PCA9685_MODE_INVRT          0x10  // Inverts polarity of channel output signal
+#define PCA9685_MODE_OUTPUT_ONACK   0x08  // Channel update happens upon ACK (post-set) rather than on STOP (endTransmission)
+#define PCA9685_MODE_OUTPUT_TPOLE   0x04  // Use a totem-pole (push-pull) style output, typical for boards using this chipset
+#define PCA9685_MODE_OUTNE_HIGHZ    0x02  // For active low output enable, sets channel output to high-impedance state
+#define PCA9685_MODE_OUTNE_LOW      0x01  // Similarly, sets channel output to high if in totem-pole mode, otherwise high-impedance state
+
+#define SERVO_FREQ_PRESCALE   122   // in 50Hz
+
+static const uint8_t servo_channels[] = {
+  PCA9685_PWM_REG + 13*4,
+  PCA9685_PWM_REG + 12*4,
+  PCA9685_PWM_REG + 11*4,
+  PCA9685_PWM_REG + 10*4,
+  PCA9685_PWM_REG +  9*4,
+  PCA9685_PWM_REG +  8*4
+};
+
+static void pca9685_write_reg(uint8_t address, uint8_t value) {
+  I2C_WriteMem(PCA9685_BASE_ADDRESS, address, 1, &value, 1);
+}
+
+static uint8_t pca9685_read_reg(uint8_t address) {
+  uint8_t value = 0;
+  I2C_ReadMem(PCA9685_BASE_ADDRESS, address, 1, &value, 1);
+  return value;
+}
+
+static void pca9685_init(void) {
+  pca9685_write_reg(PCA9685_MODE1_REG, PCA9685_MODE_RESTART | PCA9685_MODE_AUTOINC);
+  pca9685_write_reg(PCA9685_MODE2_REG, PCA9685_MODE_OUTPUT_TPOLE);
+  
+  // set PWM frequency in 50Hz
+  uint8_t mode1 = pca9685_read_reg(PCA9685_MODE1_REG);
+  mode1 &= ~PCA9685_MODE_RESTART;
+  mode1 |= PCA9685_MODE_SLEEP;
+  pca9685_write_reg(PCA9685_MODE1_REG, mode1);
+  
+  pca9685_write_reg(PCA9685_PRESCALE_REG, SERVO_FREQ_PRESCALE);
+  
+  mode1 |= PCA9685_MODE_RESTART;
+  mode1 &= ~PCA9685_MODE_SLEEP;
+  pca9685_write_reg(PCA9685_MODE1_REG, mode1);
+  
+  HAL_Delay_us(500);
+}
+
+static void pca9685_set_pwm(uint8_t id, uint16_t pwm) {
+  int width = (((int)pwm*4096+10000)/20000);
+  int begin = id*4096/SERVO_CNT; // distribute pulse over entire period to balance load
+  int end   = begin + width;
+  
+  if (end > 4096) {
+    end = 4096;
+    begin = end - width;
+  }
+  
+  uint8_t data[4] = {
+    (uint8_t)(begin & 0xFF),
+    (uint8_t)((begin>>8) & 0xFF),
+    (uint8_t)(end & 0xFF),
+    (uint8_t)((end>>8) & 0xFF)
+  };
+  
+  I2C_WriteMem(PCA9685_BASE_ADDRESS, servo_channels[id], 1, data, 4);
+}
+
+#else
+
+///////////////////////////////////////////////////////////////////////////////
+// GPIO PWM Driver
 
 static GPIO_TypeDef* const servo_ports[] = {
   SERVO1_GPIO_Port,
@@ -36,20 +139,36 @@ static uint32_t const servo_pins[] = {
   SERVO6_Pin,
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// Servo PWM duty cycles
-
-static const uint16_t servo_pwm_init[] = {
-  DEG2PWM(900), DEG2PWM(900), DEG2PWM(500), DEG2PWM(0), DEG2PWM(600), DEG2PWM(850)
-};
-
-static __IO uint16_t servo_pwm[SERVO_CNT];
-static __IO uint16_t servo_pwm_set[SERVO_CNT];
-
-static __IO bool servo_action; /* servo movement is in progress */
-
 static uint8_t  servo_pulse_id;
 static uint16_t servo_pulse_time;
+
+void servo_pwm_pulse(void) {
+  uint8_t id = servo_pulse_id++;
+
+  if (id > 0) {
+    // lower previous PWM pulse
+    servo_ports[id-1]->ODR &= ~servo_pins[id-1];
+    
+    // start next 50Hz period
+    if (id == SERVO_CNT) {
+      SERVO_TIM->Instance->ARR = 20000 - servo_pulse_time;
+      servo_pulse_id = 0;
+      servo_pulse_time = 0;
+      update_servo_data();
+      return;
+    }
+  }
+  
+  // raising current PWM pulse
+  servo_ports[id]->ODR |= servo_pins[id];
+ 
+  // trigger next PWM pulse with appropriate duty cycle
+  uint16_t pwm = (uint16_t)DEG2PWM(servo_deg[id]);
+  servo_pulse_time += pwm;
+  SERVO_TIM->Instance->ARR = pwm;
+}
+
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // Servo replay sequence
@@ -88,18 +207,25 @@ extern osMutexId  servo_mutexHandle;
 
 void servo_init(void) {
   for (int i=0; i<SERVO_CNT; i++) {
-    servo_pwm[i]     = servo_pwm_init[i];
-    servo_pwm_set[i] = servo_pwm_init[i];
+    servo_deg[i]     = servo_deg_init[i];
+    servo_deg_set[i] = servo_deg_init[i];
   }
   
   load_records();
   
+#if PCA9685
+  pca9685_init();
+  for (int i=0; i<SERVO_CNT; i++) {
+    pca9685_set_pwm(i, DEG2PWM(servo_deg[i]));
+  }
+#else
   HAL_TIM_Base_Start_IT(SERVO_TIM);
+#endif
 }
 
 void servo_reset(void) {
   for (int i=0; i<SERVO_CNT; i++) {
-    servo_pwm_set[i] = servo_pwm_init[i];
+    servo_deg_set[i] = servo_deg_init[i];
   }
 }
 
@@ -112,7 +238,7 @@ bool servo_set(uint8_t id, int angle) {
   if (angle > 1800)
     angle = 1800;
 
-  servo_pwm_set[id-1] = (uint16_t)DEG2PWM(angle);
+  servo_deg_set[id-1] = (uint16_t)angle;
   return true;
 }
 
@@ -123,14 +249,14 @@ bool servo_add(uint8_t id, int delta) {
 int servo_get(uint8_t id) {
   if (id==0 || id>SERVO_CNT)
     return 0;
-  return PWM2DEG((int)servo_pwm[id-1]);
+  return (int)servo_deg[id-1];
 }
 
 bool servo_in_action(void) {
   return servo_action;
 }
 
-static void update_pwm_data(void) {
+static void update_servo_data(void) {
   int diff, steps;
 
   servo_action = false;
@@ -138,7 +264,7 @@ static void update_pwm_data(void) {
   // compute maximum angle delta
   diff = 0;
   for (int i=0; i<SERVO_CNT; i++) {
-    int d = servo_pwm_set[i] - servo_pwm[i];
+    int d = servo_deg_set[i] - servo_deg[i];
     if (d < 0)
       d = -d;
     if (d > diff)
@@ -150,45 +276,23 @@ static void update_pwm_data(void) {
   }
   
   // compute angle change steps to smoothly update all servos
-  steps = (diff+SERVO_PWM_INC-1)/SERVO_PWM_INC;
+  steps = (diff+SERVO_DEG_INC-1)/SERVO_DEG_INC;
 
   // update individual servo pwm data
   for (int i=0; i<SERVO_CNT; i++) {
-    int cur = servo_pwm[i];
-    int set = servo_pwm_set[i];
+    int cur = servo_deg[i];
+    int set = servo_deg_set[i];
     if (cur != set) {
       int new = cur + (set-cur+steps-1)/steps;
       if (cur<set ? new>set : new<set)
         new = set;
-      servo_pwm[i] = new;
+      servo_deg[i] = new;
       servo_action = true;
+#if PCA9685
+      pca9685_set_pwm(i, DEG2PWM(new));
+#endif
     }
   }
-}
-
-void servo_pwm_pulse(void) {
-  uint8_t id = servo_pulse_id++;
-
-  if (id > 0) {
-    // lower previous PWM pulse
-    servo_ports[id-1]->ODR &= ~servo_pins[id-1];
-    
-    // start next 50Hz period
-    if (id == SERVO_CNT) {
-      SERVO_TIM->Instance->ARR = 20000 - servo_pulse_time;
-      servo_pulse_id = 0;
-      servo_pulse_time = 0;
-      update_pwm_data();
-      return;
-    }
-  }
-  
-  // raising current PWM pulse
-  servo_ports[id]->ODR |= servo_pins[id];
- 
-  // trigger next PWM pulse with appropriate duty cycle
-  servo_pulse_time += servo_pwm[id];
-  SERVO_TIM->Instance->ARR = servo_pwm[id];
 }
 
 void servo_toggle_recording(void) {
@@ -298,7 +402,7 @@ static void do_toggle_recording() {
 static void do_record(void) {
   if (servo_recording && servo_record_cnt<SERVO_MAX_RECORDS) {
     for (int i=0; i<SERVO_CNT; i++)
-      servo_records[servo_record_cnt][i] = servo_pwm[i];
+      servo_records[servo_record_cnt][i] = servo_deg[i];
     servo_record_cnt++;
   }
 }
@@ -316,7 +420,7 @@ static void do_stop_replay(void) {
 
 static void do_replay(void) {
   for (int i=0; i<SERVO_CNT; i++)
-    servo_pwm_set[i] = servo_records[servo_replay_step][i];
+    servo_deg_set[i] = servo_records[servo_replay_step][i];
   servo_replay_step = (servo_replay_step+1)%servo_record_cnt;
 }
 
@@ -341,11 +445,11 @@ static void do_play_sequence(void) {
 }
 
 void servo_daemon(void const* args) {
-  uint32_t delay = SERVO_DELAY;
+  uint32_t delay = 0;
   
   for (;;) {
-    osEvent evt = osSignalWait(0xFFFF, delay);
-    delay = SERVO_DELAY;
+    osEvent evt = osSignalWait(0xFFFF, SERVO_DELAY);
+    update_servo_data();
     
     if (evt.status == osEventSignal) {
       if (evt.value.signals & SIG_TOGGLE_RECORDING) {
@@ -359,16 +463,17 @@ void servo_daemon(void const* args) {
       }
     }
 
-    if (servo_action) {
+    if (delay != 0)
+      delay--;
+    if (servo_action || delay)
       continue;
-    }
     
     if (servo_replay_started) {
       do_replay();
-      delay = 5*SERVO_DELAY;
+      delay = 5;
     } else if (servo_sequence != NULL) {
       do_play_sequence();
-      delay = servo_sequence_delay;
+      delay = servo_sequence_delay / SERVO_DELAY;
     }
   }
 }

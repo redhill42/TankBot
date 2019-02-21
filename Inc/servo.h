@@ -69,10 +69,15 @@ bool servo_play_sequence(const int16_t (*sequence)[SERVO_CNT], size_t length, ui
 bool servo_sequence_finished(void);
 
 // Private
+#ifndef PCA9685
+#define PCA9685 1
+#endif
+
+#if !PCA9685
 extern TIM_HandleTypeDef htim2;
 #define SERVO_TIM (&htim2)
-
 void servo_pwm_pulse(void);
+#endif
 
 #ifdef __cplusplus
 }

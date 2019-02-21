@@ -7,13 +7,11 @@ static int16_t  m1spd, m2spd;
 static uint32_t m1pwm, m2pwm;
 static uint32_t pwmup;
 
-extern DMA_HandleTypeDef hdma_tim4_up;
-
 #define MOTOR_PORT M1P_GPIO_Port
 
 void motor_init(void) {
   // Use DMA to generate PWM waveform
-  HAL_DMA_Start_IT(&hdma_tim4_up, (uint32_t)&pwmup, (uint32_t)&MOTOR_PORT->BSRR, 1);
+  HAL_DMA_Start_IT(MOTOR_DMA, (uint32_t)&pwmup, (uint32_t)&MOTOR_PORT->BSRR, 1);
   __HAL_TIM_ENABLE_DMA(MOTOR_TIM, TIM_DMA_UPDATE);
   __HAL_TIM_ENABLE(MOTOR_TIM);
   

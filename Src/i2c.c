@@ -178,3 +178,8 @@ bool I2C_ReadMem(uint8_t dev_addr, uint16_t mem_addr, uint16_t mem_size, uint8_t
   END();
   return true;
 }
+
+bool I2C_Reset(void) {
+  uint8_t reset = 0x06;
+  return I2C_Transmit(0, &reset, 1);
+}

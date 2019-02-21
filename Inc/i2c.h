@@ -38,6 +38,7 @@ bool I2C_ReadByte(uint8_t* data, bool ack, uint8_t timeout);
 ///////////////////////////////////////////////////////////////////////////////
 // High level interface
 
+bool I2C_Reset(void);
 bool I2C_Transmit(uint8_t dev_addr, uint8_t* data, uint16_t size);
 bool I2C_Receive(uint8_t dev_addr, uint8_t* data, uint16_t size);
 bool I2C_WriteMem(uint8_t dev_addr, uint16_t mem_addr, uint16_t mem_size, uint8_t* data, uint16_t size);

@@ -76,11 +76,10 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern DMA_HandleTypeDef hdma_tim1_ch3;
-extern DMA_HandleTypeDef hdma_tim4_up;
+extern DMA_HandleTypeDef hdma_tim2_up;
+extern DMA_HandleTypeDef hdma_tim4_ch3;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
-extern TIM_HandleTypeDef htim4;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -197,31 +196,31 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles DMA1 channel6 global interrupt.
+  * @brief This function handles DMA1 channel2 global interrupt.
   */
-void DMA1_Channel6_IRQHandler(void)
+void DMA1_Channel2_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Channel6_IRQn 0 */
+  /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
 
-  /* USER CODE END DMA1_Channel6_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_tim1_ch3);
-  /* USER CODE BEGIN DMA1_Channel6_IRQn 1 */
+  /* USER CODE END DMA1_Channel2_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_tim2_up);
+  /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */
 
-  /* USER CODE END DMA1_Channel6_IRQn 1 */
+  /* USER CODE END DMA1_Channel2_IRQn 1 */
 }
 
 /**
-  * @brief This function handles DMA1 channel7 global interrupt.
+  * @brief This function handles DMA1 channel5 global interrupt.
   */
-void DMA1_Channel7_IRQHandler(void)
+void DMA1_Channel5_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Channel7_IRQn 0 */
+  /* USER CODE BEGIN DMA1_Channel5_IRQn 0 */
 
-  /* USER CODE END DMA1_Channel7_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_tim4_up);
-  /* USER CODE BEGIN DMA1_Channel7_IRQn 1 */
+  /* USER CODE END DMA1_Channel5_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_tim4_ch3);
+  /* USER CODE BEGIN DMA1_Channel5_IRQn 1 */
 
-  /* USER CODE END DMA1_Channel7_IRQn 1 */
+  /* USER CODE END DMA1_Channel5_IRQn 1 */
 }
 
 /**
@@ -253,20 +252,6 @@ void TIM3_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles TIM4 global interrupt.
-  */
-void TIM4_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM4_IRQn 0 */
-
-  /* USER CODE END TIM4_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim4);
-  /* USER CODE BEGIN TIM4_IRQn 1 */
-
-  /* USER CODE END TIM4_IRQn 1 */
-}
-
-/**
   * @brief This function handles EXTI line[15:10] interrupts.
   */
 void EXTI15_10_IRQHandler(void)
@@ -282,9 +267,12 @@ void EXTI15_10_IRQHandler(void)
 
 /* USER CODE BEGIN 1 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
+#if !PCA9685
   if (htim->Instance == SERVO_TIM->Instance) {
     servo_pwm_pulse();
-  } else if (htim->Instance == BEEP_TIM->Instance) {
+  }
+#endif
+  if (htim->Instance == BEEP_TIM->Instance) {
     beep_pwm_pulse();
   }
 }
@@ -294,7 +282,7 @@ void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim) {
     motor_pwm_pulse(htim->Channel);
   } else if (htim->Instance == BEEP_TIM->Instance) {
     beep_pwm_pulse();
-  } else if (htim->Instance == TIM1) {
+  } else if (htim->Instance == LED_TIM->Instance) {
     led_pwm_pulse();
   }
 }

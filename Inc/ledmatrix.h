@@ -18,12 +18,12 @@ bool led_update(bool block);
 
 // private
 
-extern TIM_HandleTypeDef  htim1;
-extern DMA_HandleTypeDef  hdma_tim1_ch3;
+extern TIM_HandleTypeDef  htim4;
+extern DMA_HandleTypeDef  hdma_tim4_ch3;
 
-#define LED_TIM           (&htim1)
+#define LED_TIM           (&htim4)
 #define LED_TIM_CHANNEL   TIM_CHANNEL_3
-#define LED_DMA           (&hdma_tim1_ch3)
+#define LED_DMA           (&hdma_tim4_ch3)
 
 void led_pwm_pulse(void);
 

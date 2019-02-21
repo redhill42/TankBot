@@ -83,8 +83,14 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define BEEP_Pin GPIO_PIN_13
 #define BEEP_GPIO_Port GPIOC
+#define E1_Pin GPIO_PIN_15
+#define E1_GPIO_Port GPIOC
+#define SW_Pin GPIO_PIN_0
+#define SW_GPIO_Port GPIOC
 #define I2C_SDA_Pin GPIO_PIN_1
 #define I2C_SDA_GPIO_Port GPIOC
+#define E6_Pin GPIO_PIN_2
+#define E6_GPIO_Port GPIOC
 #define ADC_BAT_Pin GPIO_PIN_3
 #define ADC_BAT_GPIO_Port GPIOC
 #define M1N_Pin GPIO_PIN_4
@@ -108,10 +114,12 @@ void Error_Handler(void);
 #define ECHO_Pin GPIO_PIN_12
 #define ECHO_GPIO_Port GPIOB
 #define ECHO_EXTI_IRQn EXTI15_10_IRQn
+#define E4_Pin GPIO_PIN_14
+#define E4_GPIO_Port GPIOB
+#define E5_Pin GPIO_PIN_15
+#define E5_GPIO_Port GPIOB
 #define I2C_SCL_Pin GPIO_PIN_9
 #define I2C_SCL_GPIO_Port GPIOC
-#define WS2812_Pin GPIO_PIN_10
-#define WS2812_GPIO_Port GPIOA
 #define SERVO1_Pin GPIO_PIN_10
 #define SERVO1_GPIO_Port GPIOC
 #define SERVO2_Pin GPIO_PIN_11
@@ -122,8 +130,8 @@ void Error_Handler(void);
 #define SERVO4_GPIO_Port GPIOD
 #define SERVO5_Pin GPIO_PIN_5
 #define SERVO5_GPIO_Port GPIOB
-#define SERVO6_Pin GPIO_PIN_8
-#define SERVO6_GPIO_Port GPIOB
+#define WS2812_Pin GPIO_PIN_8
+#define WS2812_GPIO_Port GPIOB
 #define LED_Pin GPIO_PIN_9
 #define LED_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */

@@ -1,5 +1,6 @@
 #include "main.h"
 #include "cmsis_os.h"
+#include "i2c.h"
 #include "servo.h"
 #include "motor.h"
 #include "ps2controller.h"
@@ -367,6 +368,7 @@ void app_main(const void* args) {
   struct KeyPress start = {0};
   struct KeyPress r3 = {0};
 
+  I2C_Reset();
   servo_init();
   motor_init();
   ps2_init();
