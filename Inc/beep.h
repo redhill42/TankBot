@@ -13,13 +13,6 @@ void no_tone(void);
 bool beep_start(const char* notes, bool flash);
 void beep_stop(void);
 
-// Private
-extern TIM_HandleTypeDef htim3;
-#define BEEP_TIM (&htim3)
-#define BEEP_TIM_CHANNEL TIM_CHANNEL_1
-
-void beep_pwm_pulse(void);
-
 #ifdef __cplusplus
 }
 #endif

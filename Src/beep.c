@@ -2,6 +2,11 @@
 #include "cmsis_os.h"
 #include "beep.h"
 
+extern TIM_HandleTypeDef htim3;
+
+#define BEEP_TIM (&htim3)
+#define BEEP_TIM_CHANNEL TIM_CHANNEL_2
+
 void tone(uint32_t frequency) {
   uint32_t period = 1000000/frequency;
   
@@ -9,17 +14,11 @@ void tone(uint32_t frequency) {
   __HAL_TIM_SET_AUTORELOAD(BEEP_TIM, period-1);
   __HAL_TIM_SET_COMPARE(BEEP_TIM, BEEP_TIM_CHANNEL, period/2);
   
-  HAL_TIM_Base_Start_IT(BEEP_TIM);
-  HAL_TIM_OC_Start_IT(BEEP_TIM, BEEP_TIM_CHANNEL);
+  HAL_TIM_PWM_Start(BEEP_TIM, BEEP_TIM_CHANNEL);
 }
 
 void no_tone(void) {
-  HAL_TIM_Base_Stop_IT(BEEP_TIM);
-  HAL_TIM_OC_Stop_IT(BEEP_TIM, BEEP_TIM_CHANNEL);
-}
-
-void beep_pwm_pulse(void) {
-  BEEP_GPIO_Port->ODR ^= BEEP_Pin;
+  HAL_TIM_PWM_Stop(BEEP_TIM, BEEP_TIM_CHANNEL);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

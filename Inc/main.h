@@ -124,8 +124,8 @@ void Error_Handler(void);
 #define SERVO3_GPIO_Port GPIOC
 #define SERVO4_Pin GPIO_PIN_2
 #define SERVO4_GPIO_Port GPIOD
-#define SERVO5_Pin GPIO_PIN_5
-#define SERVO5_GPIO_Port GPIOB
+#define SPK_Pin GPIO_PIN_5
+#define SPK_GPIO_Port GPIOB
 #define WS2812_Pin GPIO_PIN_8
 #define WS2812_GPIO_Port GPIOB
 #define LED_Pin GPIO_PIN_9
