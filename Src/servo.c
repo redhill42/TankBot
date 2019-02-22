@@ -214,12 +214,18 @@ void servo_init(void) {
 #else
   HAL_TIM_Base_Start_IT(SERVO_TIM);
 #endif
+  
+  HAL_Delay(1000);
+  servo_reset();
 }
 
 void servo_reset(void) {
-  for (int i=0; i<SERVO_CNT; i++) {
-    servo_deg_set[i] = servo_deg_init[i];
-  }
+  servo_set(1, 900);
+  servo_set(2, 900);
+  servo_set(3, 1450);
+  servo_set(4, 0);
+  servo_set(5, 1440);
+  servo_set(6, 900);
 }
 
 bool servo_set(uint8_t id, int angle) {
@@ -235,7 +241,7 @@ bool servo_set(uint8_t id, int angle) {
   return true;
 }
 
-bool servo_add(uint8_t id, int delta) {
+bool servo_step(uint8_t id, int delta) {
   return servo_set(id, servo_get(id) + delta);
 }
 
@@ -305,11 +311,15 @@ uint8_t servo_record_count(void) {
 }
 
 void servo_start_replay(void) {
-  signal(SIG_START_REPLAY);
+  if (!servo_replay_started) {
+    signal(SIG_START_REPLAY);
+  }
 }
 
 void servo_stop_replay(void) {
-  signal(SIG_STOP_REPLAY);
+  if (servo_replay_started) {
+    signal(SIG_STOP_REPLAY);
+  }
 }
 
 bool servo_play_sequence(const int16_t (*sequence)[SERVO_CNT], size_t length, uint32_t delay) {
@@ -442,7 +452,6 @@ void servo_daemon(void const* args) {
   
   for (;;) {
     osEvent evt = osSignalWait(0xFFFF, SERVO_DELAY);
-    update_servo_data();
     
     if (evt.status == osEventSignal) {
       if (evt.value.signals & SIG_TOGGLE_RECORDING) {
@@ -454,10 +463,12 @@ void servo_daemon(void const* args) {
       } else if (evt.value.signals & SIG_STOP_REPLAY) {
         do_stop_replay();
       }
+    } else if (evt.status == osEventTimeout) {
+      update_servo_data();
+      if (delay != 0)
+        delay--;
     }
 
-    if (delay != 0)
-      delay--;
     if (servo_action || delay)
       continue;
     

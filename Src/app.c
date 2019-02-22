@@ -65,32 +65,32 @@ static const int16_t grab[][6] = {
  {  -1,   -1,  450,  350,    0,   -1}, // arm down
  {  -1,   -1,   -1,   -1,   -1,   -1}, // delay
  {   0,   -1,   -1,   -1,   -1,   -1}, // drop
- {  -1,   -1, 1450,  500,  900,   -1}, // lift up
+ { 600,   -1, 1450,  500,  900,   -1}, // lift up
  { 900,  900, 1450,    0, 1440,  900}  // reset all
 };
 
 static const int16_t grab_left[][6] = {
-/*    1    2    3    4     5     6   */
-  { 900, 900,   0,   0, 1440,  900}, // 1: standby
-  {1200,  -1, 900, 900,  900,  900}, // 2: stretch
-  {  -1,  -1,  -1,  -1,   -1, 1800}, // 3: rotate shoulder
-  {  -1,  -1,  -1,  -1,    0,   -1}, // 4: hold up with shoulder
-  {  -1,  -1,  -1, 200,   -1,   -1}, // 5: hold up with elbow
-  {  -1,  -1,  -1, 450,  360,   -1}, // 6: lift up shoulder
-  {  -1,  -1,  -1,  -1,   -1,  900}, // 7: rotate shoulder forward
-  { 900, 900, 500,   0,  600,  900}  // 8: reset all
+/*    1    2     3    4     5     6   */
+  { 900, 900,    0,   0, 1440,  900}, // 1: standby
+  {1200,  -1,  900, 900,  900,  900}, // 2: stretch
+  {  -1,  -1,   -1,  -1,   -1, 1800}, // 3: rotate shoulder
+  {  -1,  -1,   -1,  -1,    0,   -1}, // 4: hold up with shoulder
+  {  -1,  -1,   -1, 200,   -1,   -1}, // 5: hold up with elbow
+  {  -1,  -1,   -1, 450,  360,   -1}, // 6: lift up shoulder
+  {  -1,  -1,   -1,  -1,   -1,  900}, // 7: rotate shoulder forward
+  { 900, 900, 1450,   0, 1440,  900}  // 8: reset all
 };
 
 static const int16_t grab_right[][6] = {
-/*    1    2    3    4     5    6   */
-  { 900, 900,   0,   0, 1440, 900}, // 1: standby
-  {1200,  -1, 900, 900,  900, 900}, // 2: stretch
-  {  -1,  -1,  -1,  -1,   -1,   0}, // 3: rotate shoulder
-  {  -1,  -1,  -1,  -1,    0,  -1}, // 4: hold up with shoulder
-  {  -1,  -1,  -1, 200,   -1,  -1}, // 5: hold up with elbow
-  {  -1,  -1,  -1, 450,  360,  -1}, // 6: lift up shoulder
-  {  -1,  -1,  -1,  -1,   -1, 900}, // 7: rotate shoulder forward
-  { 900, 900, 500,   0,  600, 900}  // 8: reset all
+/*    1    2     3    4     5    6   */
+  { 900, 900,    0,   0, 1440, 900}, // 1: standby
+  {1200,  -1,  900, 900,  900, 900}, // 2: stretch
+  {  -1,  -1,   -1,  -1,   -1,   0}, // 3: rotate shoulder
+  {  -1,  -1,   -1,  -1,    0,  -1}, // 4: hold up with shoulder
+  {  -1,  -1,   -1, 200,   -1,  -1}, // 5: hold up with elbow
+  {  -1,  -1,   -1, 450,  360,  -1}, // 6: lift up shoulder
+  {  -1,  -1,   -1,  -1,   -1, 900}, // 7: rotate shoulder forward
+  { 900, 900, 1450,   0, 1440, 900}  // 8: reset all
 };
 
 // Tilt states:
@@ -178,29 +178,29 @@ static void do_servo_control(uint16_t key) {
   servo_stop_replay();
 
   if (key & PSB_PAD_UP)
-    servo_add(SERVO_SHOULDER_UD, -SERVO_DELTA);
+    servo_step(SERVO_SHOULDER_UD, -SERVO_DELTA);
   if (key & PSB_PAD_DOWN)
-    servo_add(SERVO_SHOULDER_UD, SERVO_DELTA);
+    servo_step(SERVO_SHOULDER_UD, SERVO_DELTA);
   if (key & PSB_PAD_LEFT)
-    servo_add(SERVO_SHOULDER_ROT, SERVO_DELTA);
+    servo_step(SERVO_SHOULDER_ROT, SERVO_DELTA);
   if (key & PSB_PAD_RIGHT)
-    servo_add(SERVO_SHOULDER_ROT, -SERVO_DELTA);
+    servo_step(SERVO_SHOULDER_ROT, -SERVO_DELTA);
   if (key & PSB_TRIANGLE)
-    servo_add(SERVO_ELBOW_UD, -SERVO_DELTA);
+    servo_step(SERVO_ELBOW_UD, -SERVO_DELTA);
   if (key & PSB_CROSS)
-    servo_add(SERVO_ELBOW_UD, SERVO_DELTA);
+    servo_step(SERVO_ELBOW_UD, SERVO_DELTA);
   if (key & PSB_SQUARE)
-    servo_add(SERVO_WRIST_UD, -SERVO_DELTA);
+    servo_step(SERVO_WRIST_UD, -SERVO_DELTA);
   if (key & PSB_CIRCLE)
-    servo_add(SERVO_WRIST_UD, SERVO_DELTA);
+    servo_step(SERVO_WRIST_UD, SERVO_DELTA);
   if (key & PSB_L1)
-    servo_add(SERVO_WRIST_ROT, -SERVO_DELTA);
+    servo_step(SERVO_WRIST_ROT, -SERVO_DELTA);
   if (key & PSB_R1)
-    servo_add(SERVO_WRIST_ROT, SERVO_DELTA);
+    servo_step(SERVO_WRIST_ROT, SERVO_DELTA);
   if (key & PSB_L2)
-    servo_add(SERVO_PAW, -SERVO_DELTA);
+    servo_step(SERVO_PAW, -SERVO_DELTA);
   if (key & PSB_R2)
-    servo_add(SERVO_PAW, SERVO_DELTA);
+    servo_step(SERVO_PAW, SERVO_DELTA);
 }
 
 /* 使用抛物线函数逼近正弦函数，最大误差0.1% */
@@ -237,8 +237,8 @@ static int fast_cos(int l, int x) {
 
 static int compute_arm_extent(void) {
   int upperarm_degree = (int)servo_get(SERVO_SHOULDER_UD);
-  int forearm_degree  = upperarm_degree - 90 + (int)servo_get(SERVO_ELBOW_UD);
-  int paw_degree      = forearm_degree + 90 - (int)servo_get(SERVO_WRIST_UD);
+  int forearm_degree  = upperarm_degree - 900 + (int)servo_get(SERVO_ELBOW_UD);
+  int paw_degree      = forearm_degree + 900 - (int)servo_get(SERVO_WRIST_UD);
   
   int upperarm_extent = fast_cos(UPPERARM_LENGTH, upperarm_degree);
   int forearm_extent  = fast_cos(FOREARM_LENGTH, forearm_degree);

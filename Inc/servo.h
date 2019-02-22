@@ -32,12 +32,12 @@ void servo_init(void);
 bool servo_set(uint8_t id, int angle);
 
 /**
- * @brief  Add a value to the servo, controlling the shaft accordingly.
+ * @brief  Add a step value to the servo, controlling the shaft accordingly.
  * @param  id: The servo ID (1..6)
  * @param  inc: The angle increment, may be negative
  * @retval 1 for success, 0 for invalid servo ID
  */
-bool servo_add(uint8_t id, int inc);
+bool servo_step(uint8_t id, int inc);
 
 /**
  * @brief  Get the current angle of the servo (the value passed to the last call to servo_set()).
