@@ -71,6 +71,7 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 DMA_HandleTypeDef hdma_tim2_up;
+DMA_HandleTypeDef hdma_tim3_ch4_up;
 DMA_HandleTypeDef hdma_tim4_ch3;
 
 UART_HandleTypeDef huart1;
@@ -578,6 +579,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
   /* DMA1_Channel5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
@@ -618,12 +622,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(BEEP_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : E1_Pin SW_Pin E2_Pin E6_Pin 
-                           E3_Pin SERVO1_Pin SERVO2_Pin SERVO3_Pin */
-  GPIO_InitStruct.Pin = E1_Pin|SW_Pin|E2_Pin|E6_Pin 
-                          |E3_Pin|SERVO1_Pin|SERVO2_Pin|SERVO3_Pin;
+  /*Configure GPIO pins : E1_Pin E2_Pin E6_Pin E3_Pin 
+                           SERVO1_Pin SERVO2_Pin SERVO3_Pin */
+  GPIO_InitStruct.Pin = E1_Pin|E2_Pin|E6_Pin|E3_Pin 
+                          |SERVO1_Pin|SERVO2_Pin|SERVO3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : KEY_Pin */
+  GPIO_InitStruct.Pin = KEY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(KEY_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : M1N_Pin M1P_Pin M2N_Pin M2P_Pin */
   GPIO_InitStruct.Pin = M1N_Pin|M1P_Pin|M2N_Pin|M2P_Pin;

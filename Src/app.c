@@ -1,3 +1,4 @@
+#include <string.h>
 #include "main.h"
 #include "cmsis_os.h"
 #include "i2c.h"
@@ -11,6 +12,12 @@
 #include "delay.h"
 
 static Message_t stop_message;
+static Message_t info_message;
+
+static void messages_init(void) {
+  message_init(&stop_message, ALERT, "\x85");
+  message_init(&info_message, INFO, "");
+}
 
 static int map(int x, int in_min, int in_max, int out_min, int out_max) {
   return (x-in_min) * (out_max-out_min) / (in_max-in_min) + out_min;
@@ -53,6 +60,44 @@ static enum KeyPressState check_key_press(uint16_t key, uint16_t mask, struct Ke
     }
   }
   return KEY_PRESS_NONE;
+}
+
+static enum KeyPressState scan_on_board_key(void) {
+  // pull up input, default is high level
+  #define KEY_PRESSED  GPIO_PIN_RESET
+  #define KEY_RELEASED GPIO_PIN_SET
+  
+  static GPIO_PinState key_state = KEY_RELEASED;
+  static GPIO_PinState last_state = KEY_RELEASED;
+  static bool debounce = false;
+  static stopwatch_t timer;
+  static struct KeyPress key;
+  
+  GPIO_PinState state = HAL_GPIO_ReadPin(KEY_GPIO_Port, KEY_Pin);
+  
+  // Check to see if the button is just pressed (i.e. the input went from HIGH
+  // to LOW), and waited long enough since the last press to ignore any noise.
+  if (state != last_state) {
+    // Reset the debouncing timer.
+    debounce = true;
+    last_state = state;
+    SW_Reset(&timer);
+  }
+  
+  if (debounce && SW_Elapsed(&timer, 10)) {
+    // Whatever the state is at, it's been there for longer than the debounce
+    // delay, so take it as the actual current state.
+    debounce = false;
+    key_state = state;
+  }
+
+  if (!debounce) {
+    // Read the key when not debouncing.
+    return check_key_press(0x01, key_state==KEY_PRESSED ? 0x01 : 0x00, &key);
+  } else {
+    // Otherwise ignore the signal.
+    return KEY_PRESS_NONE;
+  }
 }
 
 static const int16_t grab[][6] = {
@@ -358,6 +403,7 @@ static void do_beep_control(bool on) {
   }
 }
 
+static void show_info(void);
 static void special_action(void);
 
 void app_main(const void* args) {
@@ -375,7 +421,7 @@ void app_main(const void* args) {
   adxl345_init();
   rangefinder_init();
   display_init();
-  message_init(&stop_message, ALERT, "\x85");
+  messages_init();
   osDelay(200);
   
   for (;;osDelay(1)) {
@@ -424,9 +470,33 @@ void app_main(const void* args) {
       break;
     }
 
+    switch (scan_on_board_key()) {
+    case KEY_PRESS_SHORT:
+      show_info();
+      break;
+    case KEY_PRESS_LONG:
+      special_action();
+      break;
+    default:
+      break;
+    }
+    
     do_servo_control(key);
     do_motor_control(lx, ly);
     do_beep_control((key&PSB_L3) != 0);
+  }
+}
+
+static void show_info(void) {
+  extern uint32_t get_battery_voltage(void);
+  static char info_buf[10];
+  
+  uint32_t v = get_battery_voltage();
+  if (v != UINT32_MAX) {
+    snprintf(info_buf, sizeof(info_buf), "DC%.1fV ", v/1000.0);
+    info_message.text = info_buf;
+    info_message.keep_time = strlen(info_buf)*9*2;
+    display_message(&info_message);
   }
 }
 
@@ -463,7 +533,7 @@ static void special_action(void) {
     "E1ECE1DCb1b4b4CD1E1C1a1a1a1E1bCDE4D4Cba1aCE1DC"
     "b1bCD1E1C1a1a1D1DFAGFE1ECE1DCb1bCD1E1C1a1a1a1",
   };
-  
+
   static int idx = 0;
   
   beep_start(musics[idx], true);

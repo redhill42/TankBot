@@ -85,8 +85,8 @@ void Error_Handler(void);
 #define BEEP_GPIO_Port GPIOC
 #define E1_Pin GPIO_PIN_15
 #define E1_GPIO_Port GPIOC
-#define SW_Pin GPIO_PIN_0
-#define SW_GPIO_Port GPIOC
+#define KEY_Pin GPIO_PIN_0
+#define KEY_GPIO_Port GPIOC
 #define E2_Pin GPIO_PIN_1
 #define E2_GPIO_Port GPIOC
 #define E6_Pin GPIO_PIN_2
