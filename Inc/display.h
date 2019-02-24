@@ -19,7 +19,7 @@ typedef struct {
   uint8_t         id;
   MessageLevel_t  level;
   const char*     text;
-  uint32_t        keep_time;
+  int32_t         keep_time;
   uint32_t        color;
   bool            blink;
 } Message_t;

@@ -15,13 +15,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Servo rotate degrees
 
-static const uint16_t servo_deg_init[] = {
+static const SERVO_POSITION servo_deg_init = {
   900, 900, 500, 0, 600, 900
 };
 
-static __IO uint16_t servo_deg[SERVO_CNT];
-static __IO uint16_t servo_deg_set[SERVO_CNT];
-
+static __IO SERVO_POSITION servo_deg;
+static __IO SERVO_POSITION servo_deg_set;
 static __IO bool servo_action; /* servo movement is in progress */
 
 static void update_servo_data(void);
@@ -89,7 +88,7 @@ static void pca9685_init(void) {
 #define PWM_MIN 102 /* 2.5% duty cycle, 500us in 50Hz */
 #define PWM_MAX 512 /* 12.5% duty cycle, 2500us in 50Hz */
 
-static void pca9685_set_pwm(uint8_t id, uint16_t angle) {
+static void pca9685_set_pwm(uint8_t id, int16_t angle) {
   int width = PWM_MIN + ((int)angle*(PWM_MAX-PWM_MIN)+900)/1800;
   int begin = id*4096/SERVO_CNT; // distribute pulse over entire period to balance load
   int end   = begin + width;
@@ -166,13 +165,13 @@ void servo_pwm_pulse(void) {
 ///////////////////////////////////////////////////////////////////////////////
 // Servo replay sequence
 
-static bool      servo_recording = false;
-static uint16_t  servo_records[SERVO_MAX_RECORDS][SERVO_CNT];
+static SERVO_POSITION servo_records[SERVO_MAX_RECORDS];
 static uint8_t   servo_record_cnt = 0;
+static bool      servo_recording = false;
 static bool      servo_replay_started = false;
 static uint8_t   servo_replay_step = 0;
 
-static int16_t const (*servo_sequence)[SERVO_CNT];
+static const SERVO_POSITION* servo_sequence;
 static size_t    servo_sequence_length;
 static size_t    servo_sequence_step;
 static uint32_t  servo_sequence_delay;
@@ -214,9 +213,6 @@ void servo_init(void) {
 #else
   HAL_TIM_Base_Start_IT(SERVO_TIM);
 #endif
-  
-  HAL_Delay(1000);
-  servo_reset();
 }
 
 void servo_reset(void) {
@@ -228,7 +224,7 @@ void servo_reset(void) {
   servo_set(6, 900);
 }
 
-bool servo_set(uint8_t id, int angle) {
+bool servo_set(uint8_t id, int16_t angle) {
   if (id==0 || id>SERVO_CNT)
     return false;
 
@@ -237,18 +233,18 @@ bool servo_set(uint8_t id, int angle) {
   if (angle > 1800)
     angle = 1800;
 
-  servo_deg_set[id-1] = (uint16_t)angle;
+  servo_deg_set[id-1] = angle;
   return true;
 }
 
-bool servo_step(uint8_t id, int delta) {
+bool servo_step(uint8_t id, int16_t delta) {
   return servo_set(id, servo_get(id) + delta);
 }
 
-int servo_get(uint8_t id) {
+int16_t servo_get(uint8_t id) {
   if (id==0 || id>SERVO_CNT)
     return 0;
-  return (int)servo_deg[id-1];
+  return servo_deg[id-1];
 }
 
 bool servo_in_action(void) {
@@ -322,7 +318,7 @@ void servo_stop_replay(void) {
   }
 }
 
-bool servo_play_sequence(const int16_t (*sequence)[SERVO_CNT], size_t length, uint32_t delay) {
+bool servo_play_sequence(const SERVO_POSITION* sequence, size_t length, uint32_t delay) {
   if (!lock(100)) {
     return false;
   }
@@ -363,7 +359,7 @@ static bool load_records(void) {
   
   // load servo records
   uint8_t cnt = buf[1];
-  uint16_t size = cnt * sizeof(*servo_records);
+  uint16_t size = cnt * sizeof(SERVO_POSITION);
   if (read_store(2, (uint8_t*)servo_records, size) != HAL_OK)
     return false;
   
@@ -381,7 +377,7 @@ static bool store_records(void) {
     return false;
   
   // write servo records
-  uint16_t size = servo_record_cnt * sizeof(*servo_records);
+  uint16_t size = servo_record_cnt * sizeof(SERVO_POSITION);
   if (write_store(2, (uint8_t*)servo_records, size, 100) != HAL_OK)
     return false;
   
@@ -449,6 +445,9 @@ static void do_play_sequence(void) {
 
 void servo_daemon(void const* args) {
   uint32_t delay = 0;
+  
+  osDelay(1000);
+  servo_reset();
   
   for (;;) {
     osEvent evt = osSignalWait(0xFFFF, SERVO_DELAY);

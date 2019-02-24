@@ -100,7 +100,7 @@ static enum KeyPressState scan_on_board_key(void) {
   }
 }
 
-static const int16_t grab[][6] = {
+static const SERVO_POSITION grab[] = {
 /*   1     2     3     4     5     6   */
  { 900,  900, 1450,    0, 1440,  900}, // standby
  { 200,   -1,  200,  200,    0,   -1}, // arm down
@@ -114,7 +114,7 @@ static const int16_t grab[][6] = {
  { 900,  900, 1450,    0, 1440,  900}  // reset all
 };
 
-static const int16_t grab_left[][6] = {
+static const SERVO_POSITION grab_left[] = {
 /*    1    2     3    4     5     6   */
   { 900, 900,    0,   0, 1440,  900}, // 1: standby
   {1200,  -1,  900, 900,  900,  900}, // 2: stretch
@@ -126,7 +126,7 @@ static const int16_t grab_left[][6] = {
   { 900, 900, 1450,   0, 1440,  900}  // 8: reset all
 };
 
-static const int16_t grab_right[][6] = {
+static const SERVO_POSITION grab_right[] = {
 /*    1    2     3    4     5    6   */
   { 900, 900,    0,   0, 1440, 900}, // 1: standby
   {1200,  -1,  900, 900,  900, 900}, // 2: stretch
@@ -493,9 +493,8 @@ static void show_info(void) {
   
   uint32_t v = get_battery_voltage();
   if (v != UINT32_MAX) {
-    snprintf(info_buf, sizeof(info_buf), "DC%.1fV ", v/1000.0);
+    snprintf(info_buf, sizeof(info_buf), "DC%.1fV", v/1000.0);
     info_message.text = info_buf;
-    info_message.keep_time = strlen(info_buf)*9*2;
     display_message(&info_message);
   }
 }

@@ -69,7 +69,7 @@ static uint8_t ps2_send_receive(uint8_t cmd) {
 /**
  * Send a command using the send receive method.
  */
-static void ps2_send_command(uint8_t cmd[], uint8_t out[], uint8_t size) {
+static void ps2_send_command(const uint8_t* cmd, uint8_t* out, uint8_t size) {
   // Before submit each command packet, you must set attention low; once
   // you are done each packet, return it high. You have to toggle the line
   // before submit another command.
@@ -85,17 +85,17 @@ static void ps2_send_command(uint8_t cmd[], uint8_t out[], uint8_t size) {
 
 static void ps2_analog_mode(void) {
   // Enter config mode
-  static uint8_t enter_config_command[] = 
+  static const uint8_t enter_config_command[] = 
     {0x01, 0x43, 0x00, 0x01, 0x00};
   ps2_send_command(enter_config_command, NULL, sizeof(enter_config_command));
   
   // Lock to Analog Mode on stick
-  static uint8_t analog_mode_command[] = 
+  static const uint8_t analog_mode_command[] = 
     {0x01, 0x44, 0x00, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00};
   ps2_send_command(analog_mode_command, NULL, sizeof(analog_mode_command));
   
   // Exit config mode
-  static uint8_t exit_config_command[] = 
+  static const uint8_t exit_config_command[] = 
     {0x01, 0x43, 0x00, 0x00, 0x5A, 0x5A, 0x5A, 0x5A, 0x5A};
   ps2_send_command(exit_config_command, NULL, sizeof(exit_config_command));
 }
@@ -104,7 +104,7 @@ static void ps2_analog_mode(void) {
  * Read raw ps2 data.
  */
 void ps2_raw_read(const void* args) {
-  static uint8_t read_command[] = {0x01, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  static const uint8_t read_command[] = {0x01, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   
   osMutexWait(ps2_mutexHandle, 10000);
   ps2_send_command(read_command, ps2_data, sizeof(ps2_data));

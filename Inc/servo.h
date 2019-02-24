@@ -18,6 +18,9 @@ extern "C" {
 
 #define SERVO_MAX_RECORDS  20
 
+/* Composite of all servo positions */
+typedef int16_t SERVO_POSITION[SERVO_CNT];
+
 /**
  * @brief  Initialize servo control
  */
@@ -29,7 +32,7 @@ void servo_init(void);
  * @param  angle: the value to write to the servo, from 0 to 180
  * @retval 1 for success, 0 for invalid servo ID
  */
-bool servo_set(uint8_t id, int angle);
+bool servo_set(uint8_t id, int16_t angle);
 
 /**
  * @brief  Add a step value to the servo, controlling the shaft accordingly.
@@ -37,14 +40,14 @@ bool servo_set(uint8_t id, int angle);
  * @param  inc: The angle increment, may be negative
  * @retval 1 for success, 0 for invalid servo ID
  */
-bool servo_step(uint8_t id, int inc);
+bool servo_step(uint8_t id, int16_t delta);
 
 /**
  * @brief  Get the current angle of the servo (the value passed to the last call to servo_set()).
  * @param  id: The servo ID (1..6)
  * @retval The angle of the servo, from 0 to 180 degrees.
  */
-int servo_get(uint8_t id);
+int16_t servo_get(uint8_t id);
 
 /**
  * @brief  Determine whether the servo is in action.
@@ -65,7 +68,7 @@ uint8_t servo_record_count(void);
 void servo_start_replay(void);
 void servo_stop_replay(void);
 
-bool servo_play_sequence(const int16_t (*sequence)[SERVO_CNT], size_t length, uint32_t delay);
+bool servo_play_sequence(const SERVO_POSITION* sequence, size_t length, uint32_t delay);
 bool servo_sequence_finished(void);
 
 // Private

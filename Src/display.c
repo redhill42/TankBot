@@ -128,7 +128,7 @@ void message_init(Message_t* message, MessageLevel_t level, const char* text) {
   
   message->level = level;
   message->text = text;
-  message->keep_time = CHAR_WIDTH * (strlen(text)-1);
+  message->keep_time = -1;
   message->blink = false;
   
   switch (level) {
@@ -143,6 +143,13 @@ void message_init(Message_t* message, MessageLevel_t level, const char* text) {
     message->color = 0x0000FF;
     break;
   }
+}
+
+static uint32_t get_message_keep_time(const Message_t* message) {
+  if (message->keep_time >= 0)
+    return message->keep_time;
+  else
+    return (-message->keep_time)*CHAR_WIDTH*strlen(message->text) - CHAR_WIDTH;
 }
 
 bool display_message(const Message_t* message) {
@@ -258,9 +265,8 @@ void display_task(void const* args) {
       text = message->text;
       color = message->color;
       blink = message->blink;
-      if (strlen(text) > 1)
-        xdir = 1;
-      display_counter = 10*message->keep_time;
+      xdir = strlen(text)>1 ? 1 : 0;
+      display_counter = get_message_keep_time(message);
       break;
     
     case FORWARD:
